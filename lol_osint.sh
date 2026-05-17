@@ -370,6 +370,62 @@ wifi_deauth() {
     sudo airmon-ng stop "${INTERFACE}mon" > /dev/null
 }
 
+# --- IOT & SURVEILLANCE MODULES ---
+
+flock_finder() {
+    echo -e "${NEON_PINK}[!] INITIATING FLOCK SAFETY CAMERA SCANNER${RESET}"
+    echo -e "${NEON_BLUE}[1] Remote Intelligence (Shodan)${RESET}"
+    if [ -z "$SHODAN_API_KEY" ]; then 
+        echo -e "${NEON_PINK}[-] Shodan API key not set. Skipping remote scan.${RESET}"
+    else
+        # Primary Dorks for Flock Safety Units
+        local dorks=(
+            'title:"Flock Admin"'
+            'port:8900 "Flock Safety"'
+            'http.html:"Condor"'
+            'http.component:"Lantronix"'
+        )
+        for dork in "${dorks[@]}"; do
+            echo -e "${NEON_BLUE}[*] Querying: $dork${RESET}"
+            shodan search "$dork" --fields ip_str,port,org,location.city 2>/dev/null | head -n 10
+        done
+    fi
+
+    echo -e "\n${NEON_BLUE}[2] Local Network Discovery (ARP/OUI)${RESET}"
+    local INTERFACE=$(ip route get 8.8.8.8 | awk '{print $5; exit}')
+    # Known Flock/Lantronix/Lite-On OUI Prefixes
+    local flock_ouis=("82:6B:F2" "EC:62:60" "74:4C:A1" "9C:2F:9D" "BC:CF:CC" "D0:53:49")
+    
+    echo -e "${NEON_BLUE}[*] Scanning local network on $INTERFACE...${RESET}"
+    sudo arp-scan --interface=$INTERFACE --localnet --retry=3 --ignoredups > /tmp/flock_arp.txt
+    
+    local found=false
+    for oui in "${flock_ouis[@]}"; do
+        if grep -qi "$oui" /tmp/flock_arp.txt; then
+            echo -e "${NEON_PINK}[+] ALERT: Potential Flock Safety device detected!${RESET}"
+            grep -i "$oui" /tmp/flock_arp.txt | awk '{print "    -> IP: " $1 " | MAC: " $2}'
+            found=true
+        fi
+    done
+    
+    if [ "$found" = false ]; then echo -e "${NEON_BLUE}[-] No Flock devices found in local ARP cache.${RESET}"; fi
+    rm /tmp/flock_arp.txt
+
+    echo -e "\n${NEON_BLUE}[3] Wireless SSID Search (Monitor Mode Required)${RESET}"
+    if command -v airodump-ng &> /dev/null; then
+        local W_INTERFACE=$(ip link | grep "wlp" | awk '{print $2}' | tr -d ':' | head -n 1)
+        if [ ! -z "$W_INTERFACE" ]; then
+            echo -ne "${NEON_BLUE}    Run passive SSID scan for 'Flock-*'? (y/n): ${RESET}"; read run_wifi
+            if [[ "$run_wifi" == "y" ]]; then
+                sudo airmon-ng start "$W_INTERFACE" > /dev/null
+                echo -e "${NEON_BLUE}[*] Sniffing for Flock SSIDs... (Press Ctrl+C to stop)${RESET}"
+                sudo timeout 30 airodump-ng "${W_INTERFACE}mon" --essid-prefix "Flock-" 2>/dev/null || true
+                sudo airmon-ng stop "${W_INTERFACE}mon" > /dev/null
+            fi
+        fi
+    fi
+}
+
 # --- UI & GUI ENGINE ---
 
 show_banner() {
@@ -433,6 +489,7 @@ grim_gui() {
         echo -e " ${NEON_BLUE}    [3] CYBER WARFARE OPERATIONS${RESET}"
         echo -e " ${NEON_BLUE}    [4] ETHERNET & INTERNAL OPS${RESET}"
         echo -e " ${NEON_BLUE}    [5] SIGNAL INTELLIGENCE (SIGINT)${RESET}"
+        echo -e " ${NEON_BLUE}    [6] IOT & SURVEILLANCE${RESET}"
         echo -e ""
         echo -e " ${NEON_BLUE} [O] STEALTH  [U] BLUR IP  [M] GHOST MODE  [X] EXIT${RESET}"
         echo -e ""
@@ -445,6 +502,7 @@ grim_gui() {
             3) gui_warfare ;;
             4) gui_ethernet ;;
             5) gui_sigint ;;
+            6) gui_iot ;;
             O|o) toggle_tor ;;
             U|u) if [ "$BLUR_IP" = true ]; then BLUR_IP=false; else BLUR_IP=true; fi ;;
             M|m) ghost_mode; echo -e "\n${NEON_BLUE}[!] Task Complete. Press Enter...${RESET}"; read ;;
@@ -531,6 +589,22 @@ gui_deep_search() {
             '.') echo -ne "    Target URL: "; read t; bash "$0" secrets_deep "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             '+') echo -ne "    Git URL: "; read t; bash "$0" secrets "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             '!') echo -ne "    Message: "; read t; discord_notify "$t"; echo -e "\n${NEON_BLUE}[+] Sent.${RESET}"; sleep 1 ;;
+        esac
+    done
+}
+
+gui_iot() {
+    while true; do
+        show_banner
+        echo -e " ${NEON_BLUE}┌─ IOT & SURVEILLANCE ────────────────────────────────────────┐${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [F] FLOCK CAMERA FINDER  [S] SHODAN IOT SCAN               ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [M] MQTT EXPLORER        [U] UPDP/SSDP DISCOVERY           ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}└─────────────────────────────────────────────────────────────┘${RESET}"
+        echo -ne " ${NEON_BLUE}[#] SELECT MODE (or 'b' for back) > ${RESET}"
+        read sub; if [[ "$sub" == "b" ]]; then return; fi
+        case $sub in
+            F|f) bash "$0" flock; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            S|s) echo -ne "    Query: "; read q; shodan search "$q"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
         esac
     done
 }
@@ -710,6 +784,7 @@ elif [[ "$TARGET" == "deauth" ]]; then TYPE="DEAUTH"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "handshake" ]]; then TYPE="HANDSHAKE"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "evil_twin" ]]; then TYPE="EVIL_TWIN"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "bt" ]]; then TYPE="BT"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "flock" ]]; then TYPE="FLOCK"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "nuclei" ]]; then TYPE="NUCLEI"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "user" ]]; then TYPE="USER_TRACE"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "fuzz" ]]; then TYPE="FUZZ"; TARGET=$EXTRA;
@@ -777,6 +852,7 @@ case $TYPE in
     HANDSHAKE) wifi_handshake ;;
     EVIL_TWIN) evil_twin_start ;;
     BT) bt_recon ;;
+    FLOCK) flock_finder ;;
     NUCLEI) vuln_scan "$TARGET" ;;
     USER_TRACE) user_trace "$TARGET" ;;
     FUZZ) web_fuzz "$TARGET" ;;
