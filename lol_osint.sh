@@ -411,19 +411,26 @@ flock_finder() {
     if [ "$found" = false ]; then echo -e "${NEON_BLUE}[-] No Flock devices found in local ARP cache.${RESET}"; fi
     rm /tmp/flock_arp.txt
 
-    echo -e "\n${NEON_BLUE}[3] Wireless SSID Search (Monitor Mode Required)${RESET}"
-    if command -v airodump-ng &> /dev/null; then
-        local W_INTERFACE=$(ip link | grep "wlp" | awk '{print $2}' | tr -d ':' | head -n 1)
-        if [ ! -z "$W_INTERFACE" ]; then
-            echo -ne "${NEON_BLUE}    Run passive SSID scan for 'Flock-*'? (y/n): ${RESET}"; read run_wifi
-            if [[ "$run_wifi" == "y" ]]; then
-                sudo airmon-ng start "$W_INTERFACE" > /dev/null
-                echo -e "${NEON_BLUE}[*] Sniffing for Flock SSIDs... (Press Ctrl+C to stop)${RESET}"
-                sudo timeout 30 airodump-ng "${W_INTERFACE}mon" --essid-prefix "Flock-" 2>/dev/null || true
-                sudo airmon-ng stop "${W_INTERFACE}mon" > /dev/null
-            fi
-        fi
+    echo -e "\n${NEON_BLUE}[3] Bluetooth Low Energy (BLE) Heartbeat Sniffing${RESET}"
+    if command -v bluetoothctl &> /dev/null; then
+        echo -e "${NEON_BLUE}[*] Scanning for BLE Advertisements (0x09C8 / Flock)... (Press Ctrl+C to stop)${RESET}"
+        # Scanning for specific manufacturer data patterns found in Flock research
+        sudo timeout 20 bluetoothctl --timeout 20 scan on | grep -E "Flock|Condor|82:6B:F2|EC:62:60" || echo -e "${NEON_BLUE}[-] No immediate BLE signatures detected.${RESET}"
+    else
+        echo -e "${NEON_PINK}[-] bluez/bluetoothctl not found. Skipping BLE scan.${RESET}"
     fi
+
+    echo -e "\n${NEON_BLUE}[4] LTE/Sierra Wireless Modem Fingerprinting${RESET}"
+    echo -ne "${NEON_BLUE}    Enter Target IP to probe for Sierra Wireless: ${RESET}"; read lte_ip
+    if [ ! -z "$lte_ip" ]; then
+        echo -e "${NEON_BLUE}[*] Probing $lte_ip for Sierra Wireless RC76xx signatures...${RESET}"
+        # Sierra Wireless modems often have specific ports open for diagnostic/LTE management
+        sudo nmap -sV -Pn -p 22,80,443,8000,8080,8900 --script banner,http-title "$lte_ip" | grep -iE "Sierra|Lantronix|Qualcomm|Open-Q"
+    fi
+
+    echo -e "\n${NEON_BLUE}[5] WigLe.net Wireless Intelligence${RESET}"
+    echo -e "Search for 'Flock-' SSIDs on WiGLE to find historical deployments:"
+    echo -e "${NEON_BLUE} -> https://wigle.net/map?mapssid=Flock-%25${RESET}"
 }
 
 # --- UI & GUI ENGINE ---

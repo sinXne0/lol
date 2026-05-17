@@ -33,7 +33,7 @@ echo -e "${NEON_BLUE}[*] Updating system and installing binaries...${RESET}"
 case $OS in
     kali|ubuntu|debian|raspbian)
         apt update
-        apt install -y nmap bettercap macchanger arp-scan exiftool whois dig curl jq yara python3 python3-pip golang-go git aircrack-ng
+        apt install -y nmap bettercap macchanger arp-scan exiftool whois dig curl jq yara python3 python3-pip golang-go git aircrack-ng bluez
         ;;
     arch)
         pacman -Sy --noconfirm nmap bettercap macchanger arp-scan exiftool whois bind curl jq yara python python-pip go git aircrack-ng
