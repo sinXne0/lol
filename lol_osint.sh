@@ -372,6 +372,53 @@ wifi_deauth() {
 
 # --- IOT & SURVEILLANCE MODULES ---
 
+flock_intel_offline() {
+    echo -e "${NEON_BLUE}========================================================${RESET}"
+    echo -e " ${NEON_PINK}FLOCK SAFETY: OFFLINE TECHNICAL INTELLIGENCE${RESET}"
+    echo -e "${NEON_BLUE}========================================================${RESET}"
+    echo -e "${NEON_BLUE}[+] DEVICE MODELS:${RESET}"
+    echo -e "  - Falcon: Automated License Plate Recognition (ALPR)"
+    echo -e "  - Condor: Pan-Tilt-Zoom (PTZ) Surveillance"
+    echo -e "  - Raven: Audio Detection (Gunshot/Siren)"
+    echo -e ""
+    echo -e "${NEON_BLUE}[+] HARDWARE FINGERPRINTS:${RESET}"
+    echo -e "  - FCC ID: N7NRC76B (Sierra Wireless LTE)"
+    echo -e "  - FCC ID: WCBN3510A (Lite-On WiFi/BT)"
+    echo -e "  - SoM: Lantronix Open-Q 624A (Snapdragon 624)"
+    echo -e ""
+    echo -e "${NEON_BLUE}[+] WIRELESS SIGNATURES:${RESET}"
+    echo -e "  - BLE UUIDs: 0000180a-0000-1000-8000-00805f9b34fb"
+    echo -e "  - BLE Manufacturer ID: 0x09C8"
+    echo -e "  - WiFi SSIDs: Flock-[6-char-MAC]"
+    echo -e "${NEON_BLUE}========================================================${RESET}"
+}
+
+flock_foxhunt() {
+    echo -e "${NEON_PINK}[!] INITIATING TACTICAL FOXHUNT (PROXIMITY TRACKING)${RESET}"
+    echo -e "${NEON_BLUE}[*] Mode: Offline Signal Strength Tracking${RESET}"
+    echo -e "${NEON_BLUE}[*] Scanning for BLE heartbeats... Press Ctrl+C to stop.${RESET}\n"
+    
+    # Simple loop to track RSSI without internet
+    while true; do
+        # Use bluetoothctl to grab RSSI for known Flock prefixes
+        local result=$(timeout 5 bluetoothctl --timeout 5 scan on | grep -E "82:6B:F2|EC:62:60|74:4C:A1|Flock" --line-buffered)
+        if [ ! -z "$result" ]; then
+            local rssi=$(echo "$result" | grep -oE "RSSI: -[0-9]+" | cut -d' ' -f2)
+            local mac=$(echo "$result" | grep -oE "([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}")
+            if [ ! -z "$rssi" ]; then
+                # Visual strength meter
+                local bars=""
+                local val=$(( (rssi + 100) / 5 ))
+                for ((i=0; i<val; i++)); do bars="${bars}█"; done
+                echo -e "${NEON_PINK}[SIGNAL]${RESET} MAC: $mac | RSSI: ${rssi}dBm | ${NEON_BLUE}${bars}${RESET}"
+            fi
+        else
+            echo -ne "Scanning... \r"
+        fi
+        sleep 1
+    done
+}
+
 flock_finder() {
     echo -e "${NEON_PINK}[!] INITIATING FLOCK SAFETY CAMERA SCANNER${RESET}"
     echo -e "${NEON_BLUE}[1] Remote Intelligence (Shodan)${RESET}"
@@ -604,13 +651,16 @@ gui_iot() {
     while true; do
         show_banner
         echo -e " ${NEON_BLUE}┌─ IOT & SURVEILLANCE ────────────────────────────────────────┐${RESET}"
-        echo -e " ${NEON_BLUE}│${RESET} [F] FLOCK CAMERA FINDER  [S] SHODAN IOT SCAN               ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [F] FLOCK SCANNER        [H] FLOCK FOXHUNT (OFFLINE)      ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [I] FLOCK MANUAL (OFF)   [S] SHODAN IOT SCAN               ${NEON_BLUE}│${RESET}"
         echo -e " ${NEON_BLUE}│${RESET} [M] MQTT EXPLORER        [U] UPDP/SSDP DISCOVERY           ${NEON_BLUE}│${RESET}"
         echo -e " ${NEON_BLUE}└─────────────────────────────────────────────────────────────┘${RESET}"
         echo -ne " ${NEON_BLUE}[#] SELECT MODE (or 'b' for back) > ${RESET}"
         read sub; if [[ "$sub" == "b" ]]; then return; fi
         case $sub in
             F|f) bash "$0" flock; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            H|h) bash "$0" foxhunt; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            I|i) bash "$0" flock_manual; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             S|s) echo -ne "    Query: "; read q; shodan search "$q"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
         esac
     done
@@ -792,6 +842,8 @@ elif [[ "$TARGET" == "handshake" ]]; then TYPE="HANDSHAKE"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "evil_twin" ]]; then TYPE="EVIL_TWIN"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "bt" ]]; then TYPE="BT"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "flock" ]]; then TYPE="FLOCK"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "foxhunt" ]]; then TYPE="FOXHUNT"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "flock_manual" ]]; then TYPE="FLOCK_MANUAL"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "nuclei" ]]; then TYPE="NUCLEI"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "user" ]]; then TYPE="USER_TRACE"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "fuzz" ]]; then TYPE="FUZZ"; TARGET=$EXTRA;
@@ -860,6 +912,8 @@ case $TYPE in
     EVIL_TWIN) evil_twin_start ;;
     BT) bt_recon ;;
     FLOCK) flock_finder ;;
+    FOXHUNT) flock_foxhunt ;;
+    FLOCK_MANUAL) flock_intel_offline ;;
     NUCLEI) vuln_scan "$TARGET" ;;
     USER_TRACE) user_trace "$TARGET" ;;
     FUZZ) web_fuzz "$TARGET" ;;
