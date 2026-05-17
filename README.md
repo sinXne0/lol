@@ -1,5 +1,7 @@
 # LOL: Ultimate OSINT & Network Reconnaissance Tool
 
+[![Release](https://img.shields.io/github/v/release/sinXne0/lol?color=pink&label=potency)](https://github.com/sinXne0/lol/releases/latest)
+
 `lol` is a high-potency, all-in-one command-line utility designed for security professionals and OSINT researchers. It automates complex reconnaissance workflows by integrating multiple specialized tools into a single, intuitive interface.
 
 ## 🚀 Features
