@@ -419,6 +419,47 @@ flock_foxhunt() {
     done
 }
 
+flock_community_sync() {
+    echo -e "${NEON_PINK}[!] SYNCING COMMUNITY SURVEILLANCE DATABASE (DEFLOCK/OSM)${RESET}"
+    echo -e "${NEON_BLUE}[*] Fetching latest ALPR data from OpenStreetMap...${RESET}"
+    # Querying OSM Overpass API for surveillance cameras tagged as ALPR
+    local query='[out:json];node["man_made"="surveillance"]["surveillance:type"="alp"];out body;'
+    curl -s -X POST -d "$query" "https://overpass-api.de/api/interpreter" > "${SCRIPT_DIR}/flock_db.json"
+    
+    if [ -s "${SCRIPT_DIR}/flock_db.json" ]; then
+        local count=$(jq '.elements | length' "${SCRIPT_DIR}/flock_db.json")
+        echo -e "${NEON_BLUE}[+] Sync complete. $count cameras added to local database.${RESET}"
+    else
+        echo -e "${NEON_PINK}[-] Sync failed. Check internet connection.${RESET}"
+    fi
+}
+
+flock_traffic_watch() {
+    echo -e "${NEON_PINK}[!] INITIATING TRAFFIC BURST MONITORING${RESET}"
+    echo -ne "${NEON_BLUE}    Target IP to monitor: ${RESET}"; read tip
+    echo -e "${NEON_BLUE}[*] Watching $tip for high-bandwidth upload bursts...${RESET}"
+    echo -e "${NEON_BLUE}[*] (This typically indicates a license plate upload event)${RESET}"
+    
+    # Simple traffic monitor using tcpdump to detect spikes
+    sudo tcpdump -i any host "$tip" -l -e -n | stdbuf -oL awk '{print $NF}' | while read -r len; do
+        if [ "$len" -gt 1000 ]; then
+            echo -e "${NEON_PINK}[ALERT]${RESET} High-bandwidth burst detected from $tip: ${len} bytes"
+            echo -e "${NEON_BLUE}[*] Possible data exfiltration/upload event at $(date)${RESET}"
+        fi
+    done
+}
+
+flock_fingerprint_deep() {
+    echo -e "${NEON_PINK}[!] INITIATING DEEP FINGERPRINTING${RESET}"
+    echo -ne "${NEON_BLUE}    Target IP: ${RESET}"; read tip
+    local endpoints=("/api/v1/status" "/config" "/debug" "/health" "/api/v1/camera/config")
+    
+    for ep in "${endpoints[@]}"; do
+        echo -e "${NEON_BLUE}[*] Probing: http://${tip}:8900${ep}${RESET}"
+        curl -s -m 3 "http://${tip}:8900${ep}" | jq . 2>/dev/null || echo "  -> No data found."
+    done
+}
+
 flock_finder() {
     echo -e "${NEON_PINK}[!] INITIATING FLOCK SAFETY CAMERA SCANNER${RESET}"
     echo -e "${NEON_BLUE}[1] Remote Intelligence (Shodan)${RESET}"
@@ -652,8 +693,9 @@ gui_iot() {
         show_banner
         echo -e " ${NEON_BLUE}┌─ IOT & SURVEILLANCE ────────────────────────────────────────┐${RESET}"
         echo -e " ${NEON_BLUE}│${RESET} [F] FLOCK SCANNER        [H] FLOCK FOXHUNT (OFFLINE)      ${NEON_BLUE}│${RESET}"
-        echo -e " ${NEON_BLUE}│${RESET} [I] FLOCK MANUAL (OFF)   [S] SHODAN IOT SCAN               ${NEON_BLUE}│${RESET}"
-        echo -e " ${NEON_BLUE}│${RESET} [M] MQTT EXPLORER        [U] UPDP/SSDP DISCOVERY           ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [I] FLOCK MANUAL (OFF)   [Y] FLOCK COMMUNITY SYNC          ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [W] FLOCK TRAFFIC WATCH  [D] FLOCK DEEP FINGERPRINT        ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [S] SHODAN IOT SCAN      [M] MQTT EXPLORER                 ${NEON_BLUE}│${RESET}"
         echo -e " ${NEON_BLUE}└─────────────────────────────────────────────────────────────┘${RESET}"
         echo -ne " ${NEON_BLUE}[#] SELECT MODE (or 'b' for back) > ${RESET}"
         read sub; if [[ "$sub" == "b" ]]; then return; fi
@@ -661,6 +703,9 @@ gui_iot() {
             F|f) bash "$0" flock; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             H|h) bash "$0" foxhunt; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             I|i) bash "$0" flock_manual; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            Y|y) bash "$0" flock_sync; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            W|w) bash "$0" flock_watch; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            D|d) bash "$0" flock_deep; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             S|s) echo -ne "    Query: "; read q; shodan search "$q"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
         esac
     done
@@ -844,6 +889,9 @@ elif [[ "$TARGET" == "bt" ]]; then TYPE="BT"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "flock" ]]; then TYPE="FLOCK"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "foxhunt" ]]; then TYPE="FOXHUNT"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "flock_manual" ]]; then TYPE="FLOCK_MANUAL"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "flock_sync" ]]; then TYPE="FLOCK_SYNC"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "flock_watch" ]]; then TYPE="FLOCK_WATCH"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "flock_deep" ]]; then TYPE="FLOCK_DEEP"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "nuclei" ]]; then TYPE="NUCLEI"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "user" ]]; then TYPE="USER_TRACE"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "fuzz" ]]; then TYPE="FUZZ"; TARGET=$EXTRA;
@@ -914,6 +962,9 @@ case $TYPE in
     FLOCK) flock_finder ;;
     FOXHUNT) flock_foxhunt ;;
     FLOCK_MANUAL) flock_intel_offline ;;
+    FLOCK_SYNC) flock_community_sync ;;
+    FLOCK_WATCH) flock_traffic_watch ;;
+    FLOCK_DEEP) flock_fingerprint_deep ;;
     NUCLEI) vuln_scan "$TARGET" ;;
     USER_TRACE) user_trace "$TARGET" ;;
     FUZZ) web_fuzz "$TARGET" ;;
