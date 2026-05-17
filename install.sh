@@ -33,13 +33,13 @@ echo -e "${NEON_BLUE}[*] Updating system and installing binaries...${RESET}"
 case $OS in
     kali|ubuntu|debian|raspbian)
         apt update
-        apt install -y nmap bettercap macchanger arp-scan exiftool whois dig curl jq yara python3 python3-pip golang-go git
+        apt install -y nmap bettercap macchanger arp-scan exiftool whois dig curl jq yara python3 python3-pip golang-go git aircrack-ng
         ;;
     arch)
-        pacman -Sy --noconfirm nmap bettercap macchanger arp-scan exiftool whois bind curl jq yara python python-pip go git
+        pacman -Sy --noconfirm nmap bettercap macchanger arp-scan exiftool whois bind curl jq yara python python-pip go git aircrack-ng
         ;;
     fedora)
-        dnf install -y nmap bettercap macchanger arp-scan perl-Image-ExifTool whois bind-utils curl jq yara python3 python3-pip golang git
+        dnf install -y nmap bettercap macchanger arp-scan perl-Image-ExifTool whois bind-utils curl jq yara python3 python3-pip golang git aircrack-ng
         ;;
     *)
         echo -e "${NEON_PINK}[!] Unsupported OS for automated binary installation.${RESET}"

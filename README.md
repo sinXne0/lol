@@ -9,6 +9,7 @@
 - **Deep Intelligence Extraction:** Extracts Bitcoin wallets, .onion links, Telegram handles, and more from raw text or URLs.
 - **Web Pentesting:** Automated sensitive file discovery and directory brute-forcing.
 - **Network Operations:** ARP spoofing, internet disconnection (kill), and MAC randomization.
+- **Signal Intelligence (SIGINT):** Automated WPA handshake capture, Evil Twin orchestration, and Wi-Fi deauth.
 - **Security Analysis:** Metadata extraction (EXIF), vulnerability scanning (via Nmap scripts), and YARA malware detection.
 - **Extreme-Potency Modules:** Auto-pilot mode, JS secret hunting, infrastructure history, and exploit mapping.
 

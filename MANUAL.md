@@ -1,13 +1,11 @@
-# LOL Tool Manual - Ultimate OSINT & Network Recon (v4 Extreme-Potency)
+# LOL Tool Manual - Ultimate OSINT & Network Recon (v5 SIGINT Edition)
 
 The `lol` tool is an all-in-one command-line utility for high-level intelligence gathering and security auditing.
 
-## New Extreme-Potency Features (v4)
+## New Extreme-Potency Features (v5)
+- **Signal Intelligence (SIGINT)**: Advanced wireless auditing. Includes WPA handshake capture, automated deauth, and Evil Twin captive portal orchestration.
 - **Auto-Pilot Mode (`auto`)**: Chained execution. Runs Remote Intelligence -> Infrastructure History -> JS Secret Hunting -> CMS Audit -> Active Port Scanning in one pass.
-- **Remote Passive Intelligence (`remote`)**: Pulls data from third-party APIs (Shodan, OTX AlienVault, HackerTarget) to gather port data, vulnerabilities, and shared hosting info without sending a single packet to the target.
 - **JS Secret Hunter (`js`)**: Crawls remote JavaScript files to extract API keys (Google, AWS, Firebase), hidden endpoints, and authentication tokens.
-- **Infrastructure History (`history`)**: Retrieves historical DNS records and WHOIS registration data from remote databases to find hidden or old assets.
-- **Exploit Mapping (`exploit`)**: Queries remote vulnerability databases (Vulners) for known exploits based on detected software versions.
 
 ## Usage
 ```bash
@@ -20,7 +18,13 @@ lol [flags] <mode> <target> [extra]
 
 ## High-Potency Modes
 
-### 1. AUTO (Ultimate Chaining)
+### 1. SIGINT (Wireless Operations)
+**Commands:** 
+- `lol handshake`: Scans for Wi-Fi networks and automates WPA handshake capture using airodump/aireplay.
+- `lol evil_twin`: Deploys a rogue access point with a captive portal via `bettercap` to harvest credentials.
+- `lol deauth`: Target-specific Wi-Fi disconnection attack.
+
+### 2. AUTO (Ultimate Chaining)
 **Command:** `lol auto <Domain/IP>`
 The most lethal command. Automates the entire recon lifecycle from passive intelligence to active scanning.
 
