@@ -21,22 +21,37 @@ RESET='\e[0m'
 
 # --- INTERFACE DETECTION ---
 get_wifi_iface() {
-    # Check for override first
+    # 1. Check for manual override in config/env
     if [ ! -z "$WIFI_IFACE_OVERRIDE" ]; then
         echo "$WIFI_IFACE_OVERRIDE"
         return
     fi
-    # Prioritize USB Adapters (wlx or wlan) over internal (wlp)
-    local iface=$(ip link | grep -oE "wlx[0-9a-f]{12}|wlan[0-9]" | head -n 1)
-    if [ -z "$iface" ]; then
-        iface=$(ip link | grep -oE "wlp[0-s]+" | head -n 1)
+    
+    # 2. Prioritize USB/External Adapters (usually start with wlx or wlan)
+    local usb_iface=$(ip -br link | awk '$1 ~ /^wlx|^wlan/ {print $1}' | head -n 1)
+    if [ ! -z "$usb_iface" ]; then
+        echo "$usb_iface"
+        return
     fi
-    echo "$iface"
+    
+    # 3. Fallback to Internal (wlp)
+    local internal_iface=$(ip -br link | awk '$1 ~ /^wlp/ {print $1}' | head -n 1)
+    if [ ! -z "$internal_iface" ]; then
+        echo "$internal_iface"
+        return
+    fi
 }
 
 get_main_iface() {
-    # Prioritize Ethernet then Wireless
-    local iface=$(ip link | grep -E "eth|enp|eno" | awk '{print $2}' | tr -d ':' | head -n 1)
+    # 1. Prioritize active Ethernet (enp, eth, eno)
+    local iface=$(ip -br link | awk '$2 == "UP" && $1 ~ /^enp|^eth|^eno/ {print $1}' | head -n 1)
+    
+    # 2. Try any Ethernet even if down
+    if [ -z "$iface" ]; then
+        iface=$(ip -br link | awk '$1 ~ /^enp|^eth|^eno/ {print $1}' | head -n 1)
+    fi
+
+    # 3. Fallback to best Wi-Fi
     if [ -z "$iface" ]; then
         iface=$(get_wifi_iface)
     fi
