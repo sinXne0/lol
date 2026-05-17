@@ -606,6 +606,88 @@ grim_gui() {
     done
 }
 
+gui_ethernet() {
+    while true; do
+        show_banner
+        echo -e " ${NEON_BLUE}┌─ ETHERNET & INTERNAL OPERATIONS ────────────────────────────┐${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [K] GHOST INSERT    [R] RESTORE LINK    [{] DIRECT-LINK DIS ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [<] NAC BYPASS      [\"] NTLM POISON     [?] GATEWAY HUNT    ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [}] SHARE HUNTER    [|] WPAD AUDIT      [/] INTERNAL ENUM   ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [>] PROTOCOL AUDIT  [%] VLAN RECON      [^] SNMP INFRA MAP  ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}└─────────────────────────────────────────────────────────────┘${RESET}"
+        echo -ne " ${NEON_BLUE}[#] SELECT MODE (or 'b' for back) > ${RESET}"
+        read sub; if [[ "$sub" == "b" ]]; then return; fi
+        case $sub in
+            K|k) ghost_insertion; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            R|r) ghost_restore; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '{') direct_link_disco; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '<') nac_bypass; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '"') ntlm_poison; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '?') gateway_hunt; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '}') echo -ne "    Target IP: "; read t; bash "$0" shares "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '|') wpad_audit; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '/') echo -ne "    Internal IP: "; read t; bash "$0" internal "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '>') protocol_audit; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '%') vlan_hop_recon; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '^') echo -ne "    Target IP: "; read t; bash "$0" snmp "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+        esac
+    done
+}
+
+gui_web_intel() {
+    while true; do
+        show_banner
+        echo -e " ${NEON_BLUE}┌─ WEB & INFRASTRUCTURE INTEL ────────────────────────────────┐${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [1] AUTO-PILOT      [2] REMOTE INTEL    [3] JS ANALYSIS     ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [4] DNS HISTORY     [5] CMS DETECT      [6] CLOUD RECON     ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [7] SUBDOMAIN MAP   [8] RUST PORT SCAN  [9] SHODAN INTEL    ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [=] ORIGIN DISCOVER [,] GITHUB DORKS    [*] ASN/BGP MAPPER  ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}└─────────────────────────────────────────────────────────────┘${RESET}"
+        echo -ne " ${NEON_BLUE}[#] SELECT MODE (or 'b' for back) > ${RESET}"
+        read sub; if [[ "$sub" == "b" ]]; then return; fi
+        case $sub in
+            1) echo -ne "    Target: "; read t; bash "$0" auto "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            2) echo -ne "    Target: "; read t; bash "$0" remote "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            3) echo -ne "    Target: "; read t; bash "$0" js "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            4) echo -ne "    Target: "; read t; bash "$0" history "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            5) echo -ne "    Target: "; read t; bash "$0" cms "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            6) echo -ne "    Keyword: "; read t; bash "$0" cloud "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            7) echo -ne "    Domain: "; read t; bash "$0" subfinder "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            8) echo -ne "    Target IP: "; read t; bash "$0" rustscan "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            9) echo -ne "    Target IP: "; read t; bash "$0" shodan "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '=') echo -ne "    Domain: "; read t; bash "$0" origin "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            ',') echo -ne "    Org Name: "; read t; bash "$0" dorks "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '*') echo -ne "    ASN: "; read t; bash "$0" asn "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+        esac
+    done
+}
+
+gui_deep_search() {
+    while true; do
+        show_banner
+        echo -e " ${NEON_BLUE}┌─ DEEP SEARCH & OSINT HUB ───────────────────────────────────┐${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [A] EMAIL (HOLEHE)  [B] PHONE (INFOGA)  [C] USER (SHERLOCK) ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [D] METADATA (EXIF) [E] DARK WEB SEARCH [P] BREACH SEARCH   ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [&] EMPLOYEE RECON  [.] API SECRETS     [+] SECRETS SCAN    ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [!] DEAD DROP NOTIF                                         ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}└─────────────────────────────────────────────────────────────┘${RESET}"
+        echo -ne " ${NEON_BLUE}[#] SELECT MODE (or 'b' for back) > ${RESET}"
+        read sub; if [[ "$sub" == "b" ]]; then return; fi
+        case $sub in
+            A|a) echo -ne "    Email: "; read t; bash "$0" email "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            B|b) echo -ne "    Phone: "; read t; bash "$0" phone "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            C|c) echo -ne "    Username: "; read t; bash "$0" user "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            D|d) echo -ne "    File/URL: "; read t; bash "$0" file "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            E|e) echo -ne "    Keyword: "; read t; bash "$0" dark "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            P|p) echo -ne "    Email/User: "; read t; bash "$0" breach "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '&') echo -ne "    Company Domain: "; read t; bash "$0" employees "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '.') echo -ne "    Target URL: "; read t; bash "$0" secrets_deep "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '+') echo -ne "    Git URL: "; read t; bash "$0" secrets "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            '!') echo -ne "    Message: "; read t; discord_notify "$t"; echo -e "\n${NEON_BLUE}[+] Sent.${RESET}"; sleep 1 ;;
+        esac
+    done
+}
+
 gui_iot() {
     while true; do
         show_banner
@@ -724,11 +806,14 @@ if [ "$1" != "--no-log" ]; then
         bash "$0" --no-log "$@" 2>&1 | tee >(sed -r 's/\x1b\[[0-9;]*m//g' > "$LOGFILE")
         
         # Post-session automated intelligence extraction
-        python3 - "$LOGFILE" "$JSON_REPORT" <<EOF
+        python3 - "$LOGFILE" "$JSON_REPORT" "${SCRIPT_DIR}/lol_dashboard_${TARGET_CLEAN}.html" <<EOF
 import re, sys, json, os
-logfile, jsonfile = sys.argv[1], sys.argv[2]
+
+logfile, jsonfile, htmlfile = sys.argv[1], sys.argv[2], sys.argv[3]
 if not os.path.exists(logfile): sys.exit(0)
+
 with open(logfile, 'r') as f: content = f.read()
+
 patterns = {
     "Emails": r"[\w.+-]+@[\w.-]+\.\w+",
     "Onions": r"\b[a-z2-7]{56}\.onion\b",
@@ -738,13 +823,60 @@ patterns = {
     "Domains": r"\b(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}\b",
     "Sensitive": r"(?i)(api[_-]?key|password|secret|access[_-]?token|bearer|id[_-]?secret)\s*[:=]\s*['\"]?([a-zA-Z0-9_-]{16,})['\"]?"
 }
+
 intel = {}
 for label, pattern in patterns.items():
     matches = sorted(list(set(re.findall(pattern, content))))
     if matches: intel[label] = matches
+
 if intel:
     with open(jsonfile, 'w') as f: json.dump(intel, f, indent=4)
     print(f"\x1b[1;32m[+] Intelligence extracted to $JSON_REPORT\x1b[0m")
+
+# HTML DASHBOARD GENERATOR
+html_template = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LOL War-Room: {target}</title>
+    <style>
+        body {{ background-color: #0a0a0a; color: #00f2ff; font-family: 'Courier New', monospace; margin: 40px; }}
+        .header {{ border: 2px solid #ff00ff; padding: 20px; text-shadow: 0 0 10px #ff00ff; margin-bottom: 20px; }}
+        .card {{ background: #1a1a1a; border-left: 5px solid #00f2ff; padding: 15px; margin-bottom: 10px; box-shadow: 5px 5px 15px rgba(0,242,255,0.1); }}
+        .label {{ color: #ff00ff; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; display: block; }}
+        .value {{ color: #00f2ff; word-wrap: break-word; }}
+        h1 {{ color: #ff00ff; }}
+        .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }}
+        .footer {{ margin-top: 50px; font-size: 0.8em; color: #444; border-top: 1px solid #222; padding-top: 10px; }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>L O L  //  W A R - R O O M</h1>
+        <div>TARGET: {target} | DATE: {date}</div>
+    </div>
+    <div class="grid">
+        {cards}
+    </div>
+    <div class="footer">Generated by LOL Potency Edition // Extreme Reconnaissance Platform</div>
+</body>
+</html>
+"""
+
+cards = ""
+for label, items in intel.items():
+    items_html = "<br>".join([f"• {i}" for i in items[:20]])
+    if len(items) > 20: items_html += f"<br>... and {len(items)-20} more"
+    cards += f'<div class="card"><span class="label">{label}</span><div class="value">{items_html}</div></div>'
+
+from datetime import datetime
+with open(htmlfile, 'w') as f:
+    f.write(html_template.format(
+        target=sys.argv[1].replace("lol_report_", "").replace(".txt", ""),
+        date=datetime.now().strftime("%Y-%m-%d %H:%M"),
+        cards=cards
+    ))
+print(f"\x1b[1;34m[+] War-Room Dashboard generated: {htmlfile}\x1b[0m")
 EOF
         exit $?
     fi
@@ -909,7 +1041,7 @@ case $TYPE in
     PAYLOAD) msf_venom "$TARGET" ;;
     SHODAN) api_intel "$TARGET" ;;
     YARA) yara_scan "$TARGET" ;;
-    HONEYPOT) hone_trap "$TARGET" ;;
+    HONEYPOT) honeypot_trap "$TARGET" ;;
     ANTI_FORENSICS) anti_forensics ;;
     C2_LISTENER) c2_listener ;;
     DNS_HIJACK) dns_hijack ;;
