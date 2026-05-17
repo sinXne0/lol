@@ -10,6 +10,7 @@
 - **Advanced OSINT:** Automates data collection for phone numbers, emails, usernames, and domains.
 - **Deep Intelligence Extraction:** Extracts Bitcoin wallets, .onion links, Telegram handles, and more from raw text or URLs.
 - **Web Pentesting:** Automated sensitive file discovery and directory brute-forcing.
+- **Active Exploitation (Warfare):** On-the-fly reverse shell generation (Wraith), automated brute-force orchestration (Havoc), tiny web shell deployment (Blackgate), and Active Directory Kerberos roasting (Breacher).
 - **Network Operations:** ARP spoofing, internet disconnection (kill), and MAC randomization.
 - **Signal Intelligence (SIGINT):** Automated WPA handshake capture, Evil Twin orchestration, and Wi-Fi deauth.
 - **Security Analysis:** Metadata extraction (EXIF), vulnerability scanning (via Nmap scripts), and YARA malware detection.
