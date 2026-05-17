@@ -1,0 +1,11 @@
+.git
+*.txt
+*.json
+*.jpg
+reports/
+wordlists/
+yara-rules/
+Dockerfile
+install.sh
+README.md
+GEMINI.md

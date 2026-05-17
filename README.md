@@ -14,27 +14,33 @@
 
 ## 🛠️ Installation
 
-### 1. System Dependencies
-Ensure the following tools are installed on your system:
+### Option 1: Ultra-Fast Setup (Recommended)
+The automated setup script detects your OS and installs all system and Python dependencies for you.
 
-**Linux (Debian/Ubuntu/Kali):**
-```bash
-sudo apt update
-sudo apt install -y nmap bettercap macchanger arp-scan exiftool whois dig curl jq yara python3 python3-pip golang-go
-```
-
-**Python Libraries:**
-```bash
-pip3 install cloudscraper beautifulsoup4 holehe sherlock-project
-```
-
-### 2. Setup
-Clone the repository and make the script executable:
 ```bash
 git clone https://github.com/sinXne0/lol.git
 cd lol
-chmod +x lol_osint.sh
+sudo chmod +x install.sh
+sudo ./install.sh
 ```
+
+### Option 2: Docker Deployment (Zero-Conflict)
+Run `lol` in a completely isolated container with all dependencies pre-installed.
+
+**Build the image:**
+```bash
+docker build -t lol .
+```
+
+**Run the tool:**
+```bash
+docker run --rm -it lol auto google.com
+```
+
+### Option 3: Manual Installation
+Ensure the following tools are installed:
+- **System:** `nmap`, `bettercap`, `macchanger`, `arp-scan`, `exiftool`, `whois`, `dig`, `curl`, `jq`, `yara`, `python3`, `golang`
+- **Python:** `cloudscraper`, `beautifulsoup4`, `holehe`, `sherlock-project`
 
 ### 3. API Configuration
 `lol` uses several third-party APIs for passive intelligence gathering. On the first run, it will create a configuration file at `~/.lol_config`. You should add your API keys there for full functionality:
