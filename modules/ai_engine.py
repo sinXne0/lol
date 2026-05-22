@@ -89,15 +89,36 @@ def ask_chatgpt(prompt, silent=False):
 
         textarea = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, "prompt-textarea")))
         textarea.send_keys(prompt)
-        time.sleep(1)
+        time.sleep(2) # Wait for UI to register text and enable button
         
-        send_button = driver.find_element(By.XPATH, "//button[@data-testid='send-button']")
-        send_button.click()
+        # Robust multi-selector for the send button
+        send_selectors = [
+            "//button[@data-testid='send-button']",
+            "//button[@data-testid='fruitjuice-send-button']",
+            "//button[@aria-label='Send prompt']",
+            "//button[contains(@class, 'mb-1') and contains(@class, 'me-1')]",
+            "//button[./*/*[local-name()='svg']]" # Fallback to any button containing an SVG
+        ]
+        
+        send_button = None
+        for selector in send_selectors:
+            try:
+                send_button = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, selector)))
+                if send_button: break
+            except: continue
+            
+        if send_button:
+            send_button.click()
+        else:
+            # Last resort: Try pressing Enter on the textarea
+            from selenium.webdriver.common.keys import Keys
+            textarea.send_keys(Keys.ENTER)
         
         if not silent: print(f"{NEON_BLUE}[*] Ghost-GPT is processing your request...{RESET}")
         
         time.sleep(5)
-        WebDriverWait(driver, 120).until(EC.presence_of_element_located((By.XPATH, "//button[@data-testid='send-button']")))
+        # Wait for either the send button to reappear OR the stop button to disappear
+        WebDriverWait(driver, 120).until(EC.presence_of_element_located((By.XPATH, "//button[contains(@data-testid, 'send-button')] | //button[@aria-label='Send prompt']")))
         
         responses = driver.find_elements(By.XPATH, "//div[contains(@class, 'markdown')]")
         if responses:
