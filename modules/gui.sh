@@ -44,10 +44,22 @@ grim_gui() {
 
 gui_ai_center() {
     show_banner
-    echo -e " ${NEON_PINK}[ GHOST AGENT - INTERACTIVE COMMAND CENTER ]${RESET}"
-    echo -e " ${NEON_BLUE}The AI can now orchestrate scans and execute commands.${RESET}"
-    echo -e -n " ${NEON_BLUE}Optional target to focus on: ${RESET}"; read target
-    python3 "${SCRIPT_DIR}/modules/ai_engine.py" --agent "$target"
+    echo -e " ${NEON_PINK}[ GHOST AGENT - AI ORCHESTRATOR ]${RESET}"
+    echo -e " ${NEON_BLUE}Select Persona Mode:${RESET}"
+    echo -e " [1] AGGRESSIVE (Red Team Exploits)"
+    echo -e " [2] SENSEI (Educational Analysis)"
+    echo -e " [3] AUTONOMOUS (Tool Orchestration)"
+    echo -e -n " ${NEON_PINK}mode> ${RESET}"; read pm
+    
+    case $pm in
+        1) P_MODE="AGGRESSIVE" ;;
+        2) P_MODE="SENSEI" ;;
+        3) P_MODE="AUTONOMOUS" ;;
+        *) P_MODE="AGGRESSIVE" ;;
+    esac
+
+    echo -e -n " ${NEON_BLUE}Optional target: ${RESET}"; read target
+    python3 "${SCRIPT_DIR}/modules/ai_engine.py" --agent "$target" "$P_MODE"
 }
 
 gui_ethernet() {

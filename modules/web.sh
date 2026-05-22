@@ -20,7 +20,7 @@ js_intel() {
     read choice
     if [ "$choice" == "y" ]; then
         LOGFILE="${SCRIPT_DIR}/lol_report_${TARGET}.txt"
-        PROMPT="Analyze the following JS findings and session log for hidden endpoints, administrative backdoors, or logic flaws. Findings: $(tail -n 50 $LOGFILE)"
+        PROMPT="Act as an aggressive Red Team Lead. Analyze the following JS findings and session log for critical vulnerabilities, hidden administrative endpoints, or hardcoded credentials that can be exploited immediately. Findings: $(tail -n 100 $LOGFILE)"
         python3 "${SCRIPT_DIR}/modules/ai_engine.py" "$PROMPT"
     fi
 }
