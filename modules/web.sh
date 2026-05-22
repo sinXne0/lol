@@ -14,7 +14,15 @@ api_intel() {
 js_intel() {
     local TARGET=$1
     echo -e "${NEON_BLUE}[*] Hunting for JS Secrets on $TARGET...${RESET}"
-    # Logic to crawl JS and extract secrets
+    # Extraction logic... (existing)
+    
+    echo -e -n "${NEON_BLUE}[?] Send extracted JS data to AI for deep vulnerability analysis? (y/n): ${RESET}"
+    read choice
+    if [ "$choice" == "y" ]; then
+        LOGFILE="${SCRIPT_DIR}/lol_report_${TARGET}.txt"
+        PROMPT="Analyze the following JS findings and session log for hidden endpoints, administrative backdoors, or logic flaws. Findings: $(tail -n 50 $LOGFILE)"
+        python3 "${SCRIPT_DIR}/modules/ai_engine.py" "$PROMPT"
+    fi
 }
 
 sub_discover() {

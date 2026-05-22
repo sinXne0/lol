@@ -44,11 +44,10 @@ grim_gui() {
 
 gui_ai_center() {
     show_banner
-    echo -e " ${NEON_PINK}[ AI COMMAND CENTER - POWERED BY CHATGPT ]${RESET}"
-    echo -e " ${NEON_BLUE}Ask anything (payloads, bypasses, strategy):${RESET}"
-    echo -e -n " ${NEON_PINK}prompt> ${RESET}"; read prompt
-    python3 "${SCRIPT_DIR}/modules/ai_engine.py" "$prompt"
-    echo -e "\n${NEON_BLUE}[ Press Enter to return ]${RESET}"; read
+    echo -e " ${NEON_PINK}[ GHOST AGENT - INTERACTIVE COMMAND CENTER ]${RESET}"
+    echo -e " ${NEON_BLUE}The AI can now orchestrate scans and execute commands.${RESET}"
+    echo -e -n " ${NEON_BLUE}Optional target to focus on: ${RESET}"; read target
+    python3 "${SCRIPT_DIR}/modules/ai_engine.py" --agent "$target"
 }
 
 gui_ethernet() {
