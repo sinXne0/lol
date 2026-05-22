@@ -24,6 +24,7 @@ grim_gui() {
         echo -e " ${NEON_BLUE}    [4] ETHERNET & INTERNAL OPS${RESET}"
         echo -e " ${NEON_BLUE}    [5] SIGNAL INTELLIGENCE (SIGINT)${RESET}"
         echo -e " ${NEON_BLUE}    [6] SYSTEM & ANTI-FORENSICS${RESET}"
+        echo -e " ${NEON_PINK}    [7] AI COMMAND CENTER (GHOST-GPT)${RESET}"
         echo -e " ${NEON_BLUE}    [0] EXIT TO SHADOWS${RESET}"
         echo -e ""
         echo -e -n " ${NEON_PINK}lol@potency:${RESET} "; read opt
@@ -34,10 +35,20 @@ grim_gui() {
             3) gui_warfare ;;
             4) gui_ethernet ;;
             5) gui_sigint ;;
-            6) gui_iot ;; # Reusing IoT slot for system/iot
+            6) gui_iot ;; 
+            7) gui_ai_center ;;
             0) exit 0 ;;
         esac
     done
+}
+
+gui_ai_center() {
+    show_banner
+    echo -e " ${NEON_PINK}[ AI COMMAND CENTER - POWERED BY CHATGPT ]${RESET}"
+    echo -e " ${NEON_BLUE}Ask anything (payloads, bypasses, strategy):${RESET}"
+    echo -e -n " ${NEON_PINK}prompt> ${RESET}"; read prompt
+    python3 "${SCRIPT_DIR}/modules/ai_engine.py" "$prompt"
+    echo -e "\n${NEON_BLUE}[ Press Enter to return ]${RESET}"; read
 }
 
 gui_ethernet() {

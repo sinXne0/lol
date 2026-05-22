@@ -177,11 +177,20 @@ def generate_html(target, intel, htmlfile):
 
     stats_html = "\n".join(stat_items)
     
+    # Load AI Analysis if it exists
+    ai_html = ""
+    ai_json = htmlfile.replace(".html", "_ai.json")
+    if os.path.exists(ai_json):
+        with open(ai_json, 'r') as f:
+            ai_data = json.load(f)
+            analysis = ai_data.get("ai_analysis", "").replace("\n", "<br>")
+            ai_html = f'<div class="card" style="border-left-color: var(--neon-pink); grid-column: 1 / -1;"><span class="label" style="color: var(--neon-pink)">Strategic AI Insights</span><div class="value" style="color: var(--text-color)">{analysis}</div></div>'
+
     with open(htmlfile, 'w') as f:
         f.write(html_template.format(
             target=target,
             date=datetime.now().strftime("%Y-%m-%d %H:%M"),
-            cards=cards,
+            cards=ai_html + cards,
             stats=stats_html
         ))
 

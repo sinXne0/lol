@@ -10,7 +10,7 @@ wraith_shells() {
     read ptype
     
     PROMPT="Generate a $ptype payload for a $desc environment. Focus on obfuscation to bypass modern security controls while remaining functional for authorized testing."
-    python3 "${SCRIPT_DIR}/modules/ai_wraith.py" "$PROMPT"
+    python3 "${SCRIPT_DIR}/modules/ai_engine.py" "$PROMPT"
 }
 
 havoc_brute() {

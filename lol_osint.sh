@@ -25,10 +25,16 @@ if [ "$1" != "--no-log" ]; then
         LOGFILE="${SCRIPT_DIR}/lol_report_${TARGET_CLEAN}.txt"
         JSON_REPORT="${SCRIPT_DIR}/lol_intel_${TARGET_CLEAN}.json"
         HTML_DASHBOARD="${SCRIPT_DIR}/lol_dashboard_${TARGET_CLEAN}.html"
+        AI_REPORT="${SCRIPT_DIR}/lol_dashboard_${TARGET_CLEAN}_ai.json"
         
         echo -e "${NEON_BLUE}[+] Session active: Logging to $LOGFILE${RESET}"
         bash "$0" --no-log "$@" 2>&1 | tee >(sed -r 's/\x1b\[[0-9;]*m//g' > "$LOGFILE")
         
+        # Post-session AI strategic analysis
+        if [ -d "$HOME/.lol_ai_profile" ]; then
+            python3 "${SCRIPT_DIR}/modules/ai_engine.py" --analyze "$LOGFILE" "$AI_REPORT"
+        fi
+
         # Post-session automated intelligence extraction via Python module
         python3 "${SCRIPT_DIR}/modules/dashboard.py" "$LOGFILE" "$JSON_REPORT" "$HTML_DASHBOARD"
         
