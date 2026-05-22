@@ -15,6 +15,7 @@ source "${SCRIPT_DIR}/modules/gui.sh"
 # 2. LOGGING & POST-EXTRACTION WRAPPER
 if [ -z "$1" ]; then
     grim_gui
+    exit 0
 fi
 
 if [ "$1" != "--no-log" ]; then

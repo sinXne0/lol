@@ -16,18 +16,25 @@ from selenium.webdriver.support import expected_conditions as EC
 USER_DATA_DIR = os.path.expanduser("~/.lol_ai_profile")
 BRAIN_FILE = os.path.expanduser("~/.lol_ai_brain.json")
 
+import getpass
+
 def init_driver():
-    chrome_options = Options()
-    chrome_options.add_argument(f"user-data-dir={USER_DATA_DIR}")
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-    return driver
+    try:
+        chrome_options = Options()
+        chrome_options.add_argument(f"user-data-dir={USER_DATA_DIR}")
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+        return driver
+    except Exception as e:
+        print(f"\x1b[1;31m[!] Failed to initialize Chrome driver: {e}\x1b[0m")
+        print("\x1b[1;34m[*] Make sure Google Chrome is installed and your display environment is set up.\x1b[0m")
+        sys.exit(1)
 
 def get_context():
     """Gathers local and target context for the AI"""
     ctx = {
         "os": platform.system(),
         "arch": platform.machine(),
-        "user": os.getlogin(),
+        "user": getpass.getuser(),
         "cwd": os.getcwd(),
         "interfaces": subprocess.getoutput("ip -br addr"),
         "recent_findings": {}

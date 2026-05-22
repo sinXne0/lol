@@ -60,6 +60,11 @@ gui_ai_center() {
 
     echo -e -n " ${NEON_BLUE}Optional target: ${RESET}"; read target
     python3 "${SCRIPT_DIR}/modules/ai_engine.py" --agent "$target" "$P_MODE"
+    
+    if [ $? -ne 0 ]; then
+        echo -e "\n${NEON_PINK}[!] AI Engine returned an error.${RESET}"
+        echo -e "${NEON_BLUE}[ Press Enter to return to menu ]${RESET}"; read
+    fi
 }
 
 gui_ethernet() {
