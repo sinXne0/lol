@@ -38,10 +38,11 @@ RUN pip3 install --no-cache-dir \
 WORKDIR /app
 
 # Copy the tool files
-COPY lol_osint.sh lol-dist.sh MANUAL.md ./
+COPY lol_osint.sh MANUAL.md ./
+COPY modules/ ./modules/
 
 # Make scripts executable
-RUN chmod +x lol_osint.sh lol-dist.sh
+RUN chmod +x lol_osint.sh
 
 # Create a symlink for easy access
 RUN ln -s /app/lol_osint.sh /usr/local/bin/lol

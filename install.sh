@@ -71,7 +71,8 @@ fi
 
 # 5. Permissions
 echo -e "${NEON_BLUE}[*] Setting permissions...${RESET}"
-chmod +x lol_osint.sh lol-dist.sh
+chmod +x lol_osint.sh
+chmod +x modules/*.py 2>/dev/null || true
 ln -sf "$(pwd)/lol_osint.sh" /usr/local/bin/lol 2>/dev/null || echo -e "${NEON_PINK}[!] Failed to create symlink at /usr/local/bin/lol. You can run it locally with ./lol_osint.sh${RESET}"
 
 echo -e "${NEON_BLUE}========================================================${RESET}"
