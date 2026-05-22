@@ -16,6 +16,14 @@
 - **Security Analysis:** Metadata extraction (EXIF), vulnerability scanning (via Nmap scripts), and YARA malware detection.
 - **Extreme-Potency Modules:** Auto-pilot mode, JS secret hunting, infrastructure history, and exploit mapping.
 
+## 🖥️ GUI & Reporting
+
+### Interactive Command Center (TUI)
+Launch the interactive Terminal User Interface (TUI) by running `lol` without any arguments. This "Command Center" provides a real-time system status dashboard and a menu-driven interface for all recon modules.
+
+### Automated Intelligence Dashboard
+After every session, `lol` generates a visual HTML dashboard (`lol_dashboard_<target>.html`) summarizing all extracted intelligence, including emails, onion links, crypto wallets, and sensitive secrets.
+
 ## 🛠️ Installation
 
 ### Option 1: Ultra-Fast Setup (Recommended)

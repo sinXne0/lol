@@ -55,6 +55,19 @@ Combines remote intelligence with active WAF/CMS detection and a deep service sc
 - **Vuln**: Deep vulnerability scanning via Nmap scripts and `nuclei`.
 - **Net/Sniff/Kill**: Local network intervention and monitoring.
 
+## 🖥️ Graphical Interface & Dashboards
+
+### 1. Interactive Command Center (TUI)
+Run `lol` with no arguments to enter the **Command Center**. This TUI allows you to:
+- Monitor system IP and Stealth status.
+- Access all modules through a visual menu.
+- Orchestrate multi-stage operations without manual command entry.
+
+### 2. HTML Intelligence Dashboard
+Every session concludes with the generation of an automated HTML dashboard.
+- **File**: `lol_dashboard_<target>.html`
+- **Features**: Visual representation of extracted emails, dark web links, wallet addresses, and leaked credentials.
+
 ## Output Files
 - `lol_report_<target>.txt`: Complete session log (stored in script directory).
 - `lol_intel_<target>.json`: Automated extraction of Emails, Onions, Wallets, and Secrets (stored in script directory).
