@@ -39,20 +39,26 @@ def ask_chatgpt(prompt, silent=False):
     driver = init_driver()
     try:
         if not silent: print(f"{NEON_BLUE}[*] Navigating to ChatGPT...{RESET}")
-        driver.get("https://chat.openai.com/")
+        driver.get("https://chatgpt.com/")
         
         # Extended wait for Cloudflare/Login
         try:
             # Look for the prompt box as a sign we are logged in
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "prompt-textarea")))
+            WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.ID, "prompt-textarea")))
             if not silent: print(f"{NEON_GREEN}[+] Session authenticated.{RESET}")
         except:
             if not silent:
                 print(f"\n{NEON_PINK}[!] LOGIN OR VERIFICATION REQUIRED{RESET}")
                 print(f"{NEON_BLUE}[*] Please complete the login/captcha in the browser window.{RESET}")
-                print(f"{NEON_BLUE}[*] The script will resume once the chat interface loads.{RESET}")
-            # Wait up to 5 minutes for user to sign in
-            WebDriverWait(driver, 300).until(EC.presence_of_element_located((By.ID, "prompt-textarea")))
+                print(f"{NEON_BLUE}[*] The script will wait for you to reach the chat interface.{RESET}")
+            
+            # Wait until the input box appears - this is the universal signal that login is finished
+            while True:
+                try:
+                    driver.find_element(By.ID, "prompt-textarea")
+                    break
+                except:
+                    time.sleep(2)
 
         if not silent: print(f"{NEON_BLUE}[*] Injecting high-potency prompt...{RESET}")
         textarea = driver.find_element(By.ID, "prompt-textarea")
