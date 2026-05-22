@@ -1,0 +1,16 @@
+# Local AI Profiles (Contains session cookies/login info)
+.lol_ai_profile/
+*/.lol_ai_profile/
+
+# Reports and Extracted Intelligence
+lol_report_*.txt
+lol_intel_*.json
+lol_dashboard_*.html
+lol_dashboard_*_ai.json
+
+# API Configurations (Local keys)
+.lol_config
+
+# Python bytecode
+__pycache__/
+*.py[cod]
