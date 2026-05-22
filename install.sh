@@ -50,7 +50,7 @@ esac
 # 3. Python Dependencies
 echo -e "${NEON_BLUE}[*] Installing Python libraries...${RESET}"
 pip3 install --upgrade pip
-pip3 install cloudscraper beautifulsoup4 holehe sherlock-project --break-system-packages 2>/dev/null || pip3 install cloudscraper beautifulsoup4 holehe sherlock-project
+pip3 install cloudscraper beautifulsoup4 holehe sherlock-project --break-system-packages 2>/dev/null || pip3 install cloudscraper beautifulsoup4 holehe sherlock-project selenium webdriver-manager
 
 # 4. Config Setup
 CONFIG_FILE="$HOME/.lol_config"

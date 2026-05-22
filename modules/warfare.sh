@@ -3,7 +3,14 @@
 # LOL Warfare & Exploitation Module
 
 wraith_shells() {
-    echo -e "${NEON_PINK}[!] WRAITH: Generating Reverse Shells...${RESET}"
+    echo -e "${NEON_PINK}[!] WRAITH AI: Intelligent Payload Generation${RESET}"
+    echo -e -n " ${NEON_BLUE}Describe the target environment (OS, AV, architecture): ${RESET}"
+    read desc
+    echo -e -n " ${NEON_BLUE}Payload type (Reverse shell, obfuscated, etc.): ${RESET}"
+    read ptype
+    
+    PROMPT="Generate a $ptype payload for a $desc environment. Focus on obfuscation to bypass modern security controls while remaining functional for authorized testing."
+    python3 "${SCRIPT_DIR}/modules/ai_wraith.py" "$PROMPT"
 }
 
 havoc_brute() {
