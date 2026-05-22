@@ -38,17 +38,12 @@ def ask_speed_ai(prompt, silent=False):
     try:
         if not silent: print(f"{NEON_BLUE}[*] Consulting Ghost-AI (Remote Speed Engine)...{RESET}")
         with DDGS() as ddgs:
-            # We use the GPT-4o-mini or Claude-3-Haiku equivalent model they provide
-            results = ddgs.chat(prompt, model='gpt-4o-mini')
-            return results
+            # Direct call to the chat function in latest ddgs
+            response = ddgs.chat(prompt, model='gpt-4o-mini')
+            return response
     except Exception as e:
         if not silent: print(f"{NEON_PINK}[!] AI Error: {e}{RESET}")
-        # Fallback to a simpler prompt if the first one fails
-        try:
-            with DDGS() as ddgs:
-                return ddgs.chat(prompt)
-        except:
-            return None
+        return None
 
 def agent_loop(user_input, target=None, mode="AGGRESSIVE"):
     ctx = get_context()
