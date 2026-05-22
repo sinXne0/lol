@@ -55,13 +55,23 @@ def ask_chatgpt(prompt, silent=False):
             # Wait until the input box appears - this is the universal signal that login is finished
             while True:
                 try:
+                    if not driver.window_handles:
+                        print(f"{NEON_PINK}[!] Browser window was closed manually.{RESET}")
+                        return None
                     driver.find_element(By.ID, "prompt-textarea")
                     break
                 except:
                     time.sleep(2)
 
+        # Give the page a moment to settle after login/redirect
+        time.sleep(3)
+        
         if not silent: print(f"{NEON_BLUE}[*] Injecting high-potency prompt...{RESET}")
-        textarea = driver.find_element(By.ID, "prompt-textarea")
+        
+        # Verify window is still there before injection
+        if not driver.window_handles: return None
+        
+        textarea = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "prompt-textarea")))
         
         # Use JS to set value to be safer, then send a tiny key to trigger 'enabled' state
         driver.execute_script("arguments[0].value = arguments[1];", textarea, prompt)
