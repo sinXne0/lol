@@ -2,32 +2,33 @@
 
 [![Release](https://img.shields.io/github/v/release/sinXne0/lol?color=pink&label=potency)](https://github.com/sinXne0/lol/releases/latest)
 
-`lol` is a high-potency, all-in-one command-line utility designed for security professionals and OSINT researchers. It automates complex reconnaissance workflows by integrating multiple specialized tools into a single, intuitive interface.
+`lol` is a high-potency, all-in-one platform designed for security professionals and OSINT researchers. Now powered by **Ghost-GPT**, it bridges the gap between raw data collection and autonomous intelligence orchestration.
 
-## 🚀 Features
+## 🚀 Key Features
 
-- **High-Potency Recon:** Domain and IP reconnaissance with WAF detection, security audits, and deep port scanning.
-- **Advanced OSINT:** Automates data collection for phone numbers, emails, usernames, and domains.
-- **Deep Intelligence Extraction:** Extracts Bitcoin wallets, .onion links, Telegram handles, and more from raw text or URLs.
-- **Web Pentesting:** Automated sensitive file discovery and directory brute-forcing.
-- **Active Exploitation (Warfare):** On-the-fly reverse shell generation (Wraith), automated brute-force orchestration (Havoc), tiny web shell deployment (Blackgate), and Active Directory Kerberos roasting (Breacher).
-- **Network Operations:** ARP spoofing, internet disconnection (kill), and MAC randomization.
+- **Ghost-GPT AI Engine:** Integrated browser-based AI that orchestrates tools, suggests attack vectors, and generates obfuscated payloads without needing API keys.
+- **High-Potency Recon:** Domain and IP reconnaissance with WAF detection, security audits, and deep port scanning via `rustscan`.
 - **Signal Intelligence (SIGINT):** Automated WPA handshake capture, Evil Twin orchestration, and Wi-Fi deauth.
-- **Security Analysis:** Metadata extraction (EXIF), vulnerability scanning (via Nmap scripts), and YARA malware detection.
-- **Extreme-Potency Modules:** Auto-pilot mode, JS secret hunting, infrastructure history, and exploit mapping.
+- **Active Exploitation (Warfare):** AI-generated payloads (Wraith), automated brute-force orchestration (Havoc), and Active Directory auditing (Breacher).
+- **Deep Intelligence extraction:** Automated detection of Emails, Onion links, Crypto Wallets, AWS Keys, and GitHub Tokens.
 
-## 🖥️ GUI & Reporting
+## 🖥️ Command & Control
 
-### Interactive Command Center (TUI)
-Launch the interactive Terminal User Interface (TUI) by running `lol` without any arguments. This "Command Center" provides a real-time system status dashboard and a menu-driven interface for all recon modules.
+### 1. Interactive Command Center (TUI)
+Launch the TUI by running `lol` without arguments. This provides a real-time system status dashboard and a menu-driven interface for all modules.
 
-### Automated Intelligence Dashboard
-After every session, `lol` generates a visual HTML dashboard (`lol_dashboard_<target>.html`) summarizing all extracted intelligence, including emails, onion links, crypto wallets, and sensitive secrets.
+### 2. Ghost Agent (AI Orchestration)
+Found in the Command Center, the **Ghost Agent** allows you to talk to the toolkit. It can suggest and execute commands like `RUN: lol recon target.com` directly with your confirmation.
+
+### 3. Visual War-Room Dashboards
+Every session generates a modern, neon-dark HTML dashboard (`lol_dashboard_<target>.html`) featuring:
+- **Strategic AI Insights:** An automated summary of vulnerabilities and recommended next steps.
+- **Extracted Intel:** Categorized findings (Keys, Wallets, Emails) with auto-linking for fast navigation.
 
 ## 🛠️ Installation
 
-### Option 1: Ultra-Fast Setup (Recommended)
-The automated setup script detects your OS and installs all system and Python dependencies for you.
+### Fast Setup
+The automated script handles system dependencies, Python libraries, and environment configuration.
 
 ```bash
 git clone https://github.com/sinXne0/lol.git
@@ -36,56 +37,19 @@ sudo chmod +x install.sh
 sudo ./install.sh
 ```
 
-### Option 2: Docker Deployment (Zero-Conflict)
-Run `lol` in a completely isolated container with all dependencies pre-installed.
-
-**Build the image:**
-```bash
-docker build -t lol .
-```
-
-**Run the tool:**
-```bash
-docker run --rm -it lol auto google.com
-```
-
-### Option 3: Manual Installation
-Ensure the following tools are installed:
-- **System:** `nmap`, `bettercap`, `macchanger`, `arp-scan`, `exiftool`, `whois`, `dig`, `curl`, `jq`, `yara`, `python3`, `golang`
-- **Python:** `cloudscraper`, `beautifulsoup4`, `holehe`, `sherlock-project`
-
-### 3. API Configuration
-`lol` uses several third-party APIs for passive intelligence gathering. On the first run, it will create a configuration file at `~/.lol_config`. You should add your API keys there for full functionality:
-
-```bash
-# Open the config file
-nano ~/.lol_config
-```
-
-**Keys to add:**
-- `SHODAN_API_KEY`: For remote port and vulnerability data.
-- `HIBP_API_KEY`: For Have I Been Pwned email leak checks.
-- `DISCORD_WEBHOOK`: (Optional) For automated reporting to a Discord channel.
-
-### 4. (Optional) Wordlists and YARA Rules
-For full functionality in `web` and `yara` modes, place your wordlists in a `./wordlists` directory and YARA rules in a `./yara-rules` directory, or use environment variables:
-```bash
-export WORDLIST_PATH=/path/to/wordlist.txt
-export YARA_RULES_DIR=/path/to/rules
-```
+### AI Configuration
+To use the AI features, simply run `lol` and select the **AI Command Center**. A browser window will open for a one-time ChatGPT sign-in. Your session is stored locally and securely in `~/.lol_ai_profile` and is never committed to the repo.
 
 ## 📖 Usage
 ```bash
-./lol_osint.sh <mode> <target> [extra]
+lol <mode> <target> [extra]
 ```
 
-### Examples:
-- **Auto-Pilot:** `./lol_osint.sh auto google.com` (Runs everything automatically)
-- **Domain Recon:** `./lol_osint.sh recon google.com`
-- **JS Secret Hunter:** `./lol_osint.sh js example.com`
-- **User OSINT:** `./lol_osint.sh sherlock user123`
-- **Web Discovery:** `./lol_osint.sh web example.com`
-- **Metadata:** `./lol_osint.sh file image.jpg`
+**Examples:**
+- **Autonomous Scan:** `lol auto google.com`
+- **AI Payload Gen:** `lol wraith`
+- **JS Secret Hunter:** `lol js example.com`
+- **User OSINT:** `lol user user123`
 
 ## ⚖️ License
 This project is licensed under the MIT License.
